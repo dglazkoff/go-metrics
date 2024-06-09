@@ -7,36 +7,42 @@ import (
 	"net/http"
 )
 
-func UpdateMetricValue(store *storage.MemStorage) http.HandlerFunc {
+func GetMetricValue(store *storage.MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL)
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
-		metricValue := chi.URLParam(r, "metricValue")
 
 		if metricType != "gauge" && metricType != "counter" {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		if metricType == "gauge" {
-			err := store.GaugeMetrics.Save(metricName, metricValue)
+		var result string
 
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
+		if metricType == "gauge" {
+			value, ok := store.GaugeMetrics[metricName]
+
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
+
+			result = fmt.Sprint(value)
 		}
 
 		if metricType == "counter" {
-			err := store.CounterMetrics.Save(metricName, metricValue)
+			value, ok := store.CounterMetrics[metricName]
 
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
+
+			result = fmt.Sprint(value)
 		}
 
+		w.Write([]byte(result))
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 	}
 }

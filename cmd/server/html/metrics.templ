@@ -1,0 +1,21 @@
+package html
+
+templ Metrics(store *storage.MemStorage) {
+    <html>
+		<body>
+	        <h2>Metrics</h2>
+	        <h3>Gauge metrics:</h3>
+	        <ul>
+                for name, value := range store.GaugeMetrics {
+                    <li>{ name }: { fmt.Sprint(value) }</li>
+                }
+            </ul>
+            <h3>Counter metrics:</h3>
+            <ul>
+                for name, value := range store.CounterMetrics {
+                    <li>{ name } { fmt.Sprint(value) }</li>
+                }
+            </ul>
+        </body>
+    </html>
+}
