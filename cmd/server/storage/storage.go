@@ -34,10 +34,3 @@ func (cm CounterMetrics) Save(name, value string) error {
 
 	return nil
 }
-
-//type repositories interface {
-//	GaugeMetrics
-//	CounterMetrics
-//}
-
-var Storage = MemStorage{GaugeMetrics: make(map[string]float64), CounterMetrics: make(map[string]int64)}

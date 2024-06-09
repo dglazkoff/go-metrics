@@ -24,7 +24,11 @@ type CounterMetrics struct {
 }
 
 func updateMetric(metricType, name, value string) {
-	_, err := http.Post("http://localhost:8080/update/"+metricType+"/"+name+"/"+value, "text/plain", nil)
+	r, err := http.Post("http://localhost:8080/update/"+metricType+"/"+name+"/"+value, "text/plain", nil)
+
+	if r != nil {
+		err = r.Body.Close()
+	}
 
 	fmt.Println(err)
 }
