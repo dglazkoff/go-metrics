@@ -2,16 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"math/rand"
-	"net/http"
 	"reflect"
 	"runtime"
 	"time"
-)
-
-const (
-	pollInterval   = 2
-	reportInterval = 10
 )
 
 type GaugeMetrics struct {
@@ -23,19 +18,17 @@ type CounterMetrics struct {
 	PollCount int64
 }
 
-func updateMetric(metricType, name, value string) {
-	r, err := http.Post("http://localhost:8080/update/"+metricType+"/"+name+"/"+value, "text/plain", nil)
+var client = resty.New()
 
-	if r != nil {
-		err = r.Body.Close()
-	}
+func updateMetric(metricType, name, value string) {
+	_, err := client.R().Post("/update/" + metricType + "/" + name + "/" + value)
 
 	fmt.Println(err)
 }
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 	for {
-		time.Sleep(reportInterval * time.Second)
+		time.Sleep(time.Duration(flagReportInterval) * time.Second)
 
 		valuesGm := reflect.ValueOf(*gm)
 		typesGm := valuesGm.Type()
@@ -63,7 +56,7 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 
 func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 	for {
-		time.Sleep(pollInterval * time.Second)
+		time.Sleep(time.Duration(flagPollInterval) * time.Second)
 
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
@@ -75,6 +68,10 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 }
 
 func main() {
+	parseFlags()
+
+	client.SetBaseURL("http://" + flagRunAddr)
+
 	var gm = GaugeMetrics{}
 	var cm = CounterMetrics{}
 
