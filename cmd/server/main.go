@@ -1,3 +1,9 @@
 package main
 
-func main() {}
+func main() {
+	parseFlags()
+
+	if err := Run(); err != nil {
+		panic(err)
+	}
+}
