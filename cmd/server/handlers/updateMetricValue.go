@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
-func UpdateMetricValue(store *storage.MemStorage) http.HandlerFunc {
+// разбить на хендлеры и сервисы
+
+func updateMetricValue(store *storage.MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.URL)
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 		metricValue := chi.URLParam(r, "metricValue")

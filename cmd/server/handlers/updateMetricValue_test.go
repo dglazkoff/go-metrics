@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,6 +80,9 @@ func TestUpdateMetricValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			err := logger.Initialize()
+			require.NoError(t, err)
+
 			ts := httptest.NewServer(Router(&tt.store))
 			defer ts.Close()
 
