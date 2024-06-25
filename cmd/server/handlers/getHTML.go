@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func GetHTML(store *storage.MemStorage) http.HandlerFunc {
+func getHTML(store *storage.MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// w.Write([]byte(html.Hello("John")))

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func GetMetricValue(store *storage.MemStorage) http.HandlerFunc {
+func getMetricValue(store *storage.MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
