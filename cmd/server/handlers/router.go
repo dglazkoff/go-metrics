@@ -9,8 +9,8 @@ import (
 func Router(store *storage.MemStorage) chi.Router {
 	r := chi.NewRouter()
 
-	r.Post("/update/{metricType}/{metricName}/{metricValue}", logger.Log.Request(updateMetricValue(store)))
-	r.Get("/value/{metricType}/{metricName}", logger.Log.Request(getMetricValue(store)))
+	r.Post("/update", logger.Log.Request(updateMetricValue(store)))
+	r.Post("/value", logger.Log.Request(getMetricValue(store)))
 	r.Get("/", logger.Log.Request(getHTML(store)))
 
 	return r

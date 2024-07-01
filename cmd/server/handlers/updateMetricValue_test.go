@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
+	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -16,14 +19,15 @@ func TestUpdateMetricValue(t *testing.T) {
 		store      storage.MemStorage
 		statusCode int
 	}
+
+	var deltaValue int64 = 1
+	var value float64 = 101
+
 	tests := []struct {
-		name   string
-		method string
-		store  storage.MemStorage
-		//metricType  string
-		//metricName  string
-		//metricValue string
-		path    string
+		name    string
+		method  string
+		store   storage.MemStorage
+		metric  models.Metrics
 		request string
 		want    want
 	}{
@@ -31,9 +35,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "success test",
 			method: http.MethodPost,
 			store:  storage.MemStorage{CounterMetrics: map[string]int64{}},
-			path:   "/update/counter/value/1",
+			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
 			want: want{
-				store:      storage.MemStorage{CounterMetrics: map[string]int64{"value": 1}},
+				store:      storage.MemStorage{CounterMetrics: map[string]int64{"value": deltaValue}},
 				statusCode: http.StatusOK,
 			},
 		},
@@ -41,7 +45,7 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "invalid method GET",
 			method: http.MethodGet,
 			store:  storage.MemStorage{},
-			path:   "/update/counter/value/1",
+			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
 			want: want{
 				store:      storage.MemStorage{},
 				statusCode: http.StatusMethodNotAllowed,
@@ -51,7 +55,7 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "add counter to previous result",
 			method: http.MethodPost,
 			store:  storage.MemStorage{CounterMetrics: map[string]int64{"value": 1}},
-			path:   "/update/counter/value/1",
+			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
 			want: want{
 				store:      storage.MemStorage{CounterMetrics: map[string]int64{"value": 2}},
 				statusCode: http.StatusOK,
@@ -61,9 +65,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "update gauge metric",
 			method: http.MethodPost,
 			store:  storage.MemStorage{GaugeMetrics: map[string]float64{"value": 1}},
-			path:   "/update/gauge/value/101",
+			metric: models.Metrics{ID: "value", MType: "gauge", Value: &value},
 			want: want{
-				store:      storage.MemStorage{GaugeMetrics: map[string]float64{"value": 101}},
+				store:      storage.MemStorage{GaugeMetrics: map[string]float64{"value": value}},
 				statusCode: http.StatusOK,
 			},
 		},
@@ -71,9 +75,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "add gauge metric",
 			method: http.MethodPost,
 			store:  storage.MemStorage{GaugeMetrics: map[string]float64{"value": 1}},
-			path:   "/update/gauge/value1/101",
+			metric: models.Metrics{ID: "value1", MType: "gauge", Value: &value},
 			want: want{
-				store:      storage.MemStorage{GaugeMetrics: map[string]float64{"value1": 101, "value": 1}},
+				store:      storage.MemStorage{GaugeMetrics: map[string]float64{"value1": value, "value": 1}},
 				statusCode: http.StatusOK,
 			},
 		},
@@ -86,7 +90,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			ts := httptest.NewServer(Router(&tt.store))
 			defer ts.Close()
 
-			request, err := http.NewRequest(tt.method, ts.URL+tt.path, nil)
+			var b bytes.Buffer
+			err = json.NewEncoder(&b).Encode(tt.metric)
+			request, err := http.NewRequest(tt.method, ts.URL+"/update", &b)
 			require.NoError(t, err)
 
 			result, err := ts.Client().Do(request)

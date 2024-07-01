@@ -1,47 +1,56 @@
 package handlers
 
 import (
-	"fmt"
+	"encoding/json"
+	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
-	"github.com/go-chi/chi/v5"
+	"github.com/dglazkoff/go-metrics/internal/models"
 	"net/http"
 )
 
 func getMetricValue(store *storage.MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		metricType := chi.URLParam(r, "metricType")
-		metricName := chi.URLParam(r, "metricName")
+		var metric models.Metrics
+		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+			logger.Log.Debug("Error while decode", err)
+		}
 
-		if metricType != "gauge" && metricType != "counter" {
+		if metric.MType != "gauge" && metric.MType != "counter" {
+			logger.Log.Debug("Wrong type")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		var result string
+		enc := json.NewEncoder(w)
 
-		if metricType == "gauge" {
-			value, ok := store.GaugeMetrics[metricName]
-
-			if !ok {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			result = fmt.Sprint(value)
-		}
-
-		if metricType == "counter" {
-			value, ok := store.CounterMetrics[metricName]
+		if metric.MType == "gauge" {
+			value, ok := store.GaugeMetrics[metric.ID]
 
 			if !ok {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 
-			result = fmt.Sprint(value)
+			if err := enc.Encode(value); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
-		w.Write([]byte(result))
+		if metric.MType == "counter" {
+			value, ok := store.CounterMetrics[metric.ID]
+
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			if err := enc.Encode(value); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 	}
