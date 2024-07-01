@@ -26,7 +26,7 @@ func updateGaugeMetric(name string, value float64) {
 	body, err := json.Marshal(models.Metrics{MType: "gauge", ID: name, Value: &value})
 
 	if err == nil {
-		_, err = client.R().SetBody(body).Post("/update")
+		_, err = client.R().SetBody(body).Post("/update/")
 	}
 
 	fmt.Println(err)
@@ -36,7 +36,7 @@ func updateCounterMetric(name string, value int64) {
 	body, err := json.Marshal(models.Metrics{MType: "counter", ID: name, Delta: &value})
 
 	if err == nil {
-		_, err = client.R().SetBody(body).Post("/update")
+		_, err = client.R().SetBody(body).Post("/update/")
 	}
 
 	fmt.Println(err)
