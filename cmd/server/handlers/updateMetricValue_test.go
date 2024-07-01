@@ -92,7 +92,8 @@ func TestUpdateMetricValue(t *testing.T) {
 
 			var b bytes.Buffer
 			err = json.NewEncoder(&b).Encode(tt.metric)
-			request, err := http.NewRequest(tt.method, ts.URL+"/update", &b)
+			require.NoError(t, err)
+			request, err := http.NewRequest(tt.method, ts.URL+"/update/", &b)
 			require.NoError(t, err)
 
 			result, err := ts.Client().Do(request)
