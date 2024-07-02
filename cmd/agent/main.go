@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
-	"fmt"
+	"github.com/dglazkoff/go-metrics/cmd/agent/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
 	"math/rand"
@@ -25,21 +27,55 @@ var client = resty.New()
 func updateGaugeMetric(name string, value float64) {
 	body, err := json.Marshal(models.Metrics{MType: "gauge", ID: name, Value: &value})
 
-	if err == nil {
-		_, err = client.R().SetBody(body).Post("/update/")
+	if err != nil {
+		logger.Log.Debug("Error while marshal data: ", err)
+		return
 	}
 
-	fmt.Println(err)
+	buf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(buf)
+	_, err = zb.Write([]byte(body))
+
+	if err != nil {
+		logger.Log.Debug("Error on write gzip data: ", err)
+		return
+	}
+
+	zb.Close()
+
+	_, err = client.R().SetBody(buf).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/update/")
+
+	if err != nil {
+		logger.Log.Debug("Error on request: ", err)
+		return
+	}
 }
 
 func updateCounterMetric(name string, value int64) {
 	body, err := json.Marshal(models.Metrics{MType: "counter", ID: name, Delta: &value})
 
-	if err == nil {
-		_, err = client.R().SetBody(body).Post("/update/")
+	if err != nil {
+		logger.Log.Debug("Error while marshal data: ", err)
+		return
 	}
 
-	fmt.Println(err)
+	buf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(buf)
+	_, err = zb.Write([]byte(body))
+
+	if err != nil {
+		logger.Log.Debug("Error on write gzip data: ", err)
+		return
+	}
+
+	zb.Close()
+
+	_, err = client.R().SetBody(buf).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/update/")
+
+	if err != nil {
+		logger.Log.Debug("Error on request: ", err)
+		return
+	}
 }
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
@@ -95,6 +131,12 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 
 func main() {
 	parseFlags()
+
+	err := logger.Initialize()
+
+	if err != nil {
+		panic(err)
+	}
 
 	client.SetBaseURL("http://" + flagRunAddr)
 

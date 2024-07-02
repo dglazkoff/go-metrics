@@ -51,8 +51,10 @@ func updateMetricValueInRequest(store *storage.MemStorage) http.HandlerFunc {
 func updateMetricValueInBody(store *storage.MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric models.Metrics
+
 		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
-			logger.Log.Debug("Error while decode", err)
+			logger.Log.Debug("Error while decode: ", err)
+			return
 		}
 
 		updateMetricValue(store, metric, w, r)
@@ -60,10 +62,6 @@ func updateMetricValueInBody(store *storage.MemStorage) http.HandlerFunc {
 }
 
 func updateMetricValue(store *storage.MemStorage, metric models.Metrics, w http.ResponseWriter, r *http.Request) {
-	if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
-		logger.Log.Debug("Error while decode", err)
-	}
-
 	if metric.MType != "gauge" && metric.MType != "counter" {
 		logger.Log.Debug("Wrong type")
 		w.WriteHeader(http.StatusBadRequest)
