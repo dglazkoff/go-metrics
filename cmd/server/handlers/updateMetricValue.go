@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/dglazkoff/go-metrics/cmd/server/flags"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/models"
@@ -87,6 +88,10 @@ func updateMetricValue(store *storage.MemStorage, metric models.Metrics, w http.
 		}
 
 		store.CounterMetrics.Save(metric.ID, metric.Delta)
+	}
+
+	if flags.FlagStoreInterval == 0 {
+		storage.WriteMetrics(store, false)
 	}
 
 	w.WriteHeader(http.StatusOK)

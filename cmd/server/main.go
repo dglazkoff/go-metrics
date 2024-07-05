@@ -1,9 +1,12 @@
 package main
 
-import "github.com/dglazkoff/go-metrics/cmd/server/logger"
+import (
+	"github.com/dglazkoff/go-metrics/cmd/server/flags"
+	"github.com/dglazkoff/go-metrics/cmd/server/logger"
+)
 
 func main() {
-	parseFlags()
+	flags.ParseFlags()
 	err := logger.Initialize()
 
 	if err != nil {

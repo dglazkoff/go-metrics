@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/dglazkoff/go-metrics/cmd/server/flags"
 	"github.com/dglazkoff/go-metrics/cmd/server/handlers"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
@@ -9,9 +10,13 @@ import (
 
 func Run() error {
 	store := storage.MemStorage{GaugeMetrics: make(map[string]float64), CounterMetrics: make(map[string]int64)}
+	storage.ReadMetrics(&store)
 
-	// fmt.Println("Running server on ", flagRunAddr)
-	logger.Log.Infow("Starting Server on ", "addr", flagRunAddr)
+	logger.Log.Infow("Starting Server on ", "addr", flags.FlagRunAddr)
 
-	return http.ListenAndServe(flagRunAddr, handlers.Router(&store))
+	if flags.FlagStoreInterval != 0 {
+		go storage.WriteMetrics(&store, true)
+	}
+
+	return http.ListenAndServe(flags.FlagRunAddr, handlers.Router(&store))
 }
