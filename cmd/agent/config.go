@@ -21,8 +21,8 @@ func parseConfig() Config {
 	config := Config{}
 
 	flag.StringVar(&config.runAddr, "a", ":8080", "address of the server")
-	flag.IntVar(&config.pollInterval, "r", 10, "частота отправки метрик на сервер")
-	flag.IntVar(&config.reportInterval, "p", 2, "частота опроса метрик из пакета runtime")
+	flag.IntVar(&config.reportInterval, "r", 10, "частота отправки метрик на сервер")
+	flag.IntVar(&config.pollInterval, "p", 2, "частота опроса метрик из пакета runtime")
 	flag.Parse()
 
 	if runAddr := os.Getenv("ADDRESS"); runAddr != "" {

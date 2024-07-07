@@ -1,11 +1,11 @@
-package handlers
+package router
 
 import (
 	"bytes"
 	"encoding/json"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
-	"github.com/dglazkoff/go-metrics/cmd/server/storage"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,18 +17,19 @@ import (
 // покрыл не все кейсы так как мало времени и все эти кейсы должны проверяться инкрементными тестами
 func TestUpdateMetricValue(t *testing.T) {
 	type want struct {
-		store      storage.MemStorage
+		store      []models.Metrics
 		statusCode int
 	}
 
 	cfg := config.ParseConfig()
 	var deltaValue int64 = 1
+	var deltaResultValue int64 = 2
 	var value float64 = 101
 
 	tests := []struct {
 		name    string
 		method  string
-		store   storage.MemStorage
+		store   []models.Metrics
 		metric  models.Metrics
 		request string
 		want    want
@@ -36,50 +37,50 @@ func TestUpdateMetricValue(t *testing.T) {
 		{
 			name:   "success test",
 			method: http.MethodPost,
-			store:  storage.MemStorage{CounterMetrics: map[string]int64{}},
+			store:  []models.Metrics{},
 			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
 			want: want{
-				store:      storage.MemStorage{CounterMetrics: map[string]int64{"value": deltaValue}},
+				store:      []models.Metrics{{ID: "value", MType: "counter", Delta: &deltaValue}},
 				statusCode: http.StatusOK,
 			},
 		},
 		{
 			name:   "invalid method GET",
 			method: http.MethodGet,
-			store:  storage.MemStorage{},
+			store:  []models.Metrics{},
 			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
 			want: want{
-				store:      storage.MemStorage{},
+				store:      []models.Metrics{},
 				statusCode: http.StatusMethodNotAllowed,
 			},
 		},
 		{
 			name:   "add counter to previous result",
 			method: http.MethodPost,
-			store:  storage.MemStorage{CounterMetrics: map[string]int64{"value": 1}},
+			store:  []models.Metrics{{ID: "value", MType: "counter", Delta: &deltaValue}},
 			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
 			want: want{
-				store:      storage.MemStorage{CounterMetrics: map[string]int64{"value": 2}},
+				store:      []models.Metrics{{ID: "value", MType: "counter", Delta: &deltaResultValue}},
 				statusCode: http.StatusOK,
 			},
 		},
 		{
 			name:   "update gauge metric",
 			method: http.MethodPost,
-			store:  storage.MemStorage{GaugeMetrics: map[string]float64{"value": 1}},
+			store:  []models.Metrics{{ID: "value", MType: "gauge", Value: &value}},
 			metric: models.Metrics{ID: "value", MType: "gauge", Value: &value},
 			want: want{
-				store:      storage.MemStorage{GaugeMetrics: map[string]float64{"value": value}},
+				store:      []models.Metrics{{ID: "value", MType: "gauge", Value: &value}},
 				statusCode: http.StatusOK,
 			},
 		},
 		{
 			name:   "add gauge metric",
 			method: http.MethodPost,
-			store:  storage.MemStorage{GaugeMetrics: map[string]float64{"value": 1}},
+			store:  []models.Metrics{{ID: "value", MType: "gauge", Value: &value}},
 			metric: models.Metrics{ID: "value1", MType: "gauge", Value: &value},
 			want: want{
-				store:      storage.MemStorage{GaugeMetrics: map[string]float64{"value1": value, "value": 1}},
+				store:      []models.Metrics{{ID: "value", MType: "gauge", Value: &value}, {ID: "value1", MType: "gauge", Value: &value}},
 				statusCode: http.StatusOK,
 			},
 		},
@@ -89,7 +90,8 @@ func TestUpdateMetricValue(t *testing.T) {
 			err := logger.Initialize()
 			require.NoError(t, err)
 
-			ts := httptest.NewServer(Router(&tt.store, &cfg))
+			store := metrics.New(tt.store)
+			ts := httptest.NewServer(Router(&store, &cfg))
 			defer ts.Close()
 
 			var b bytes.Buffer
@@ -106,7 +108,7 @@ func TestUpdateMetricValue(t *testing.T) {
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.want.store, tt.store)
+			assert.Equal(t, tt.want.store, store.ReadMetrics())
 		})
 	}
 }

@@ -81,7 +81,7 @@ func updateCounterMetric(name string, value int64) {
 }
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
-	writeMetricsInterval := time.Duration(cfg.pollInterval) * time.Second
+	writeMetricsInterval := time.Duration(cfg.reportInterval) * time.Second
 
 	for {
 		time.Sleep(writeMetricsInterval)
