@@ -1,1 +1,1 @@
-{"GaugeMetrics":{},"CounterMetrics":{"someMetric":2}}
+[{"id":"someMetric","type":"counter","delta":1}]

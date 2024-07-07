@@ -63,6 +63,7 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 	if statusCode < 300 {
 		c.w.Header().Set("Content-Encoding", "gzip")
 	}
+
 	c.w.WriteHeader(statusCode)
 }
 
@@ -101,22 +102,20 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func GzipHandle(next http.HandlerFunc) http.HandlerFunc {
+func GzipHandle(next http.HandlerFunc, isHTML bool) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		ow := writer
 
 		if strings.Contains(request.Header.Get("Accept-Encoding"), "gzip") &&
-			(request.Header.Get("Content-Type") == "application/json" || request.Header.Get("Content-Type") == "text/html") {
+			(request.Header.Get("Content-Type") == "application/json" || isHTML || request.Header.Get("Content-Type") == "text/html") {
 
 			logger.Log.Debug("Handler with gzip compression response ", request.URL)
-			w, err := gzip.NewWriterLevel(writer, gzip.BestSpeed)
-
-			if err == nil {
-				ow = &compressWriter{ow, w}
-				// ow.Header().Set("Content-Encoding", "gzip")
-			}
-
-			defer w.Close()
+			cw := newCompressWriter(writer)
+			// меняем оригинальный http.ResponseWriter на новый
+			ow = cw
+			ow.Header().Set("Content-Encoding", "gzip")
+			// не забываем отправить клиенту все сжатые данные после завершения middleware
+			defer cw.Close()
 		}
 
 		if request.Header.Get("Content-Encoding") == "gzip" {

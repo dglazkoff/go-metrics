@@ -21,12 +21,12 @@ func Metrics(metrics []models.Metrics) templ.Component {
 			templ_7745c5c3_Buffer = templ.GetBuffer()
 			defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 		}
-		ctx = templ.InitializeContext(ctx)
+		templ.InitializeContext(ctx)
 		templ_7745c5c3_Var1 := templ.GetChildren(ctx)
 		if templ_7745c5c3_Var1 == nil {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
-		ctx = templ.ClearChildren(ctx)
+		templ.ClearChildren(ctx)
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<html><body><h2>Metrics</h2><h3>Gauge metrics:</h3><ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

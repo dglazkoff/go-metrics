@@ -2,6 +2,7 @@ package file
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
@@ -25,6 +26,15 @@ func New(s storage.MetricsStorage, cfg *config.Config) service {
 	return service{storage: s, cfg: cfg}
 }
 
+func closeFile(f *os.File) {
+	fmt.Println("closing")
+	err := f.Close()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 func (s service) ReadMetrics() {
 	if !s.cfg.IsRestore {
 		return
@@ -35,7 +45,7 @@ func (s service) ReadMetrics() {
 
 	logger.Log.Debug("Opening file ", path)
 	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
-	defer file.Close()
+	defer closeFile(file)
 
 	if err != nil {
 		logger.Log.Debug("Error while open file ", err)
@@ -69,14 +79,15 @@ func (s service) WriteMetrics(isLoop bool) {
 		return
 	}
 
-	var isLoopTemp bool = true
+	var isLoopTemp = true
 
 	for isLoopTemp {
 		time.Sleep(time.Duration(s.cfg.StoreInterval) * time.Second)
 
 		logger.Log.Debug("Opening file ", path)
 		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-		defer file.Close()
+		defer closeFile(file)
+
 		if err != nil {
 			logger.Log.Debug("Error while open file ", err)
 			return

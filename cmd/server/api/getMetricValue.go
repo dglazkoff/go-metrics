@@ -26,6 +26,7 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 			return
 		}
 
+		// не нравится что логика работы со значениями метрики в хендлере
 		if value.Delta != nil {
 			w.Write([]byte(fmt.Sprint(*value.Delta)))
 		}
@@ -59,6 +60,14 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 
 		// почему тут выставление заголовка заработало а ниже не работало?
 		w.Header().Set("Content-Type", "application/json")
+
+		//if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") &&
+		//	(r.Header.Get("Content-Type") == "application/json" || r.Header.Get("Content-Type") == "text/html") {
+		//	// не понимаю почему если поставить тут выставление заголовка, то он выставляется,
+		//	// а если где-то после Encoder - то не выставляется
+		//	w.Header().Set("Content-Encoding", "gzip")
+		//}
+
 		enc := json.NewEncoder(w)
 
 		value, err := a.metricsService.Get(metric.ID)

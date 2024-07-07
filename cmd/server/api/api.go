@@ -11,6 +11,7 @@ type metric interface {
 	Update(metric models.Metrics) error
 }
 
+// не делаем экспортируемых полей чтобы скрыть
 type API struct {
 	metricsService metric
 	cfg            *config.Config
