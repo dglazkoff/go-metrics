@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/models"
@@ -20,6 +21,7 @@ func TestUpdateMetricValue(t *testing.T) {
 		statusCode int
 	}
 
+	cfg := config.ParseConfig()
 	var deltaValue int64 = 1
 	var value float64 = 101
 
@@ -87,7 +89,7 @@ func TestUpdateMetricValue(t *testing.T) {
 			err := logger.Initialize()
 			require.NoError(t, err)
 
-			ts := httptest.NewServer(Router(&tt.store))
+			ts := httptest.NewServer(Router(&tt.store, &cfg))
 			defer ts.Close()
 
 			var b bytes.Buffer

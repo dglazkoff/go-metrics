@@ -80,9 +80,11 @@ func updateCounterMetric(name string, value int64) {
 	}
 }
 
-func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
+func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+	writeMetricsInterval := time.Duration(cfg.pollInterval) * time.Second
+
 	for {
-		time.Sleep(time.Duration(flagReportInterval) * time.Second)
+		time.Sleep(writeMetricsInterval)
 
 		valuesGm := reflect.ValueOf(*gm)
 		typesGm := valuesGm.Type()
@@ -118,9 +120,11 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 	}
 }
 
-func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
+func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+	writeMetricsInterval := time.Duration(cfg.pollInterval) * time.Second
+
 	for {
-		time.Sleep(time.Duration(flagPollInterval) * time.Second)
+		time.Sleep(writeMetricsInterval)
 
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
@@ -132,7 +136,7 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics) {
 }
 
 func main() {
-	parseFlags()
+	cfg := parseConfig()
 
 	err := logger.Initialize()
 
@@ -140,13 +144,11 @@ func main() {
 		panic(err)
 	}
 
-	client.SetBaseURL("http://" + flagRunAddr)
+	client.SetBaseURL("http://" + cfg.runAddr)
 
 	var gm = GaugeMetrics{}
 	var cm = CounterMetrics{}
 
-	go writeMetrics(&gm, &cm)
-	go updateMetrics(&gm, &cm)
-
-	select {}
+	go writeMetrics(&gm, &cm, &cfg)
+	updateMetrics(&gm, &cm, &cfg)
 }

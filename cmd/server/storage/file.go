@@ -2,20 +2,20 @@ package storage
 
 import (
 	"encoding/json"
-	"github.com/dglazkoff/go-metrics/cmd/server/flags"
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-func ReadMetrics(store *MemStorage) {
-	if !flags.FlagIsRestore {
+func ReadMetrics(store *MemStorage, cfg *config.Config) {
+	if !cfg.IsRestore {
 		return
 	}
 
 	dir, _ := os.Getwd()
-	path := filepath.Join(dir, flags.FlagFileStoragePath)
+	path := filepath.Join(dir, cfg.FileStoragePath)
 
 	logger.Log.Debug("Opening file ", path)
 	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
@@ -37,13 +37,13 @@ func ReadMetrics(store *MemStorage) {
 	*store = value
 }
 
-func WriteMetrics(store *MemStorage, isLoop bool) {
-	if flags.FlagFileStoragePath == "" {
+func WriteMetrics(store *MemStorage, isLoop bool, cfg *config.Config) {
+	if cfg.FileStoragePath == "" {
 		return
 	}
 
 	dir, _ := os.Getwd()
-	path := filepath.Join(dir, flags.FlagFileStoragePath)
+	path := filepath.Join(dir, cfg.FileStoragePath)
 
 	logger.Log.Debug("Creating dir ", filepath.Dir(path))
 	err := os.MkdirAll(filepath.Dir(path), 0750)
@@ -56,7 +56,7 @@ func WriteMetrics(store *MemStorage, isLoop bool) {
 	var isLoopTemp bool = true
 
 	for isLoopTemp {
-		time.Sleep(time.Duration(flags.FlagStoreInterval) * time.Second)
+		time.Sleep(time.Duration(cfg.StoreInterval) * time.Second)
 
 		logger.Log.Debug("Opening file ", path)
 		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)

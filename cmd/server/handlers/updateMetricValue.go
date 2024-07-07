@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/dglazkoff/go-metrics/cmd/server/flags"
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/models"
@@ -13,7 +13,7 @@ import (
 
 // разбить на хендлеры и сервисы
 
-func updateMetricValueInRequest(store *storage.MemStorage) http.HandlerFunc {
+func updateMetricValueInRequest(store *storage.MemStorage, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
@@ -45,11 +45,11 @@ func updateMetricValueInRequest(store *storage.MemStorage) http.HandlerFunc {
 			model = models.Metrics{ID: metricName, MType: metricType, Delta: &intValue}
 		}
 
-		updateMetricValue(store, model, w, r)
+		updateMetricValue(store, model, w, cfg)
 	}
 }
 
-func updateMetricValueInBody(store *storage.MemStorage) http.HandlerFunc {
+func updateMetricValueInBody(store *storage.MemStorage, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric models.Metrics
 
@@ -58,11 +58,11 @@ func updateMetricValueInBody(store *storage.MemStorage) http.HandlerFunc {
 			return
 		}
 
-		updateMetricValue(store, metric, w, r)
+		updateMetricValue(store, metric, w, cfg)
 	}
 }
 
-func updateMetricValue(store *storage.MemStorage, metric models.Metrics, w http.ResponseWriter, r *http.Request) {
+func updateMetricValue(store *storage.MemStorage, metric models.Metrics, w http.ResponseWriter, cfg *config.Config) {
 	if metric.MType != "gauge" && metric.MType != "counter" {
 		logger.Log.Debug("Wrong type")
 		w.WriteHeader(http.StatusBadRequest)
@@ -90,8 +90,8 @@ func updateMetricValue(store *storage.MemStorage, metric models.Metrics, w http.
 		store.CounterMetrics.Save(metric.ID, metric.Delta)
 	}
 
-	if flags.FlagStoreInterval == 0 {
-		storage.WriteMetrics(store, false)
+	if cfg.StoreInterval == 0 {
+		storage.WriteMetrics(store, false, cfg)
 	}
 
 	w.WriteHeader(http.StatusOK)
