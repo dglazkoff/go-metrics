@@ -9,9 +9,9 @@ import (
 func (a API) GetHTML() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// почему ниже не вставлялся заголовок??
+		// @tmvrus почему если писать тот же код как ниже, то не вставлялся заголовок??
 		w.Header().Set("Content-Type", "text/html")
-		// w.Write([]byte(html.Hello("John")))
+
 		component := html.Metrics(a.metricsService.GetAll())
 		component.Render(context.Background(), w)
 		// w.Header().Set("Content-Type", "text/html")

@@ -61,6 +61,7 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 
 func (c *compressWriter) WriteHeader(statusCode int) {
 	if statusCode < 300 {
+		// @tmvrus почему-то здесь не выставляется заголовок хотя статус 200
 		c.w.Header().Set("Content-Encoding", "gzip")
 	}
 
@@ -102,6 +103,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
+// @tmvrus не нравится решение с isHTML, но не знаю другого, так как в request не приходит заголовок text/html при запросе страницы
 func GzipHandle(next http.HandlerFunc, isHTML bool) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		ow := writer
@@ -111,10 +113,10 @@ func GzipHandle(next http.HandlerFunc, isHTML bool) http.HandlerFunc {
 
 			logger.Log.Debug("Handler with gzip compression response ", request.URL)
 			cw := newCompressWriter(writer)
-			// меняем оригинальный http.ResponseWriter на новый
+
 			ow = cw
 			ow.Header().Set("Content-Encoding", "gzip")
-			// не забываем отправить клиенту все сжатые данные после завершения middleware
+
 			defer cw.Close()
 		}
 

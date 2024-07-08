@@ -27,6 +27,14 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 		}
 
 		// не нравится что логика работы со значениями метрики в хендлере
+
+		/*
+			@tmvrus
+			fmt.Sprint делает преобразование "всего что угодно" в строку, и тут могут быть проблемы в постедствии, когда структура хранения усложнится
+			лучше всегда использовать явное преобразование, что бы читать кода всегда видел из какого типа в какой идет преобрзование, в данном случае подойдет fmt.Sprintf("%d", value) тут явным образом ожидается число
+
+			если делать fmt.Sprintf("%d", value), то добавляются лишние нули в конце
+		*/
 		if value.Delta != nil {
 			w.Write([]byte(fmt.Sprint(*value.Delta)))
 		}
@@ -34,11 +42,6 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 		if value.Value != nil {
 			w.Write([]byte(fmt.Sprint(*value.Value)))
 		}
-
-		/*
-			fmt.Sprint делает преобразование "всего что угодно" в строку, и тут могут быть проблемы в постедствии, когда структура хранения усложнится
-			лучше всегда использовать явное преобразование, что бы читать кода всегда видел из какого типа в какой идет преобрзование, в данном случае подойдет fmt.Sprintf("%d", value) тут явным образом ожидается число
-		*/
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
@@ -58,15 +61,8 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 			return
 		}
 
-		// почему тут выставление заголовка заработало а ниже не работало?
+		// @tmvrus почему тут выставление заголовка заработало, а ниже не работало?
 		w.Header().Set("Content-Type", "application/json")
-
-		//if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") &&
-		//	(r.Header.Get("Content-Type") == "application/json" || r.Header.Get("Content-Type") == "text/html") {
-		//	// не понимаю почему если поставить тут выставление заголовка, то он выставляется,
-		//	// а если где-то после Encoder - то не выставляется
-		//	w.Header().Set("Content-Encoding", "gzip")
-		//}
 
 		enc := json.NewEncoder(w)
 
