@@ -13,17 +13,18 @@ import (
 )
 
 type metricStorage interface {
-	UpdateMetric(metric models.Metrics) error
+	SaveMetrics(metrics []models.Metrics)
+	ReadMetrics() []models.Metrics
 }
 
-type service struct {
+type fileStorage struct {
 	storage metricStorage
 	cfg     *config.Config
 }
 
 // тут не надо по указателю передавать?
-func New(s storage.MetricsStorage, cfg *config.Config) service {
-	return service{storage: s, cfg: cfg}
+func New(s storage.MetricsStorage, cfg *config.Config) fileStorage {
+	return fileStorage{storage: s, cfg: cfg}
 }
 
 func closeFile(f *os.File) {
@@ -31,11 +32,10 @@ func closeFile(f *os.File) {
 	err := f.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
 	}
 }
 
-func (s service) ReadMetrics() {
+func (s fileStorage) ReadMetrics() {
 	if !s.cfg.IsRestore {
 		return
 	}
@@ -52,18 +52,18 @@ func (s service) ReadMetrics() {
 		return
 	}
 
-	value := models.Metrics{}
-	err = json.NewDecoder(file).Decode(&value)
+	var metrics []models.Metrics
+	err = json.NewDecoder(file).Decode(&metrics)
 
 	if err != nil {
 		logger.Log.Debug("Error while decode ", err)
 		return
 	}
 
-	s.storage.UpdateMetric(value)
+	s.storage.SaveMetrics(metrics)
 }
 
-func (s service) WriteMetrics(isLoop bool) {
+func (s fileStorage) WriteMetrics(isLoop bool) {
 	if s.cfg.FileStoragePath == "" {
 		return
 	}
@@ -95,7 +95,7 @@ func (s service) WriteMetrics(isLoop bool) {
 
 		enc := json.NewEncoder(file)
 
-		err = enc.Encode(s.storage)
+		err = enc.Encode(s.storage.ReadMetrics())
 
 		if err != nil {
 			logger.Log.Debug("Error while write store to file ", err)

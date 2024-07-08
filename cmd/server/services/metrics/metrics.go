@@ -8,6 +8,10 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
+type fileStorage interface {
+	WriteMetrics(isLoop bool)
+}
+
 type metricStorage interface {
 	ReadMetric(name string) (models.Metrics, error)
 	ReadMetrics() []models.Metrics
@@ -15,12 +19,13 @@ type metricStorage interface {
 }
 
 type service struct {
-	storage metricStorage
-	cfg     *config.Config
+	storage     metricStorage
+	fileStorage fileStorage
+	cfg         *config.Config
 }
 
-func New(s storage.MetricsStorage, cfg *config.Config) service {
-	return service{storage: s, cfg: cfg}
+func New(s storage.MetricsStorage, f fileStorage, cfg *config.Config) service {
+	return service{storage: s, cfg: cfg, fileStorage: f}
 }
 
 func (s service) Get(name string) (models.Metrics, error) {
@@ -52,9 +57,10 @@ func (s service) Update(metric models.Metrics) error {
 		}
 	}
 
-	return s.storage.UpdateMetric(metric)
+	err := s.storage.UpdateMetric(metric)
+	if s.cfg.StoreInterval == 0 && err == nil {
+		s.fileStorage.WriteMetrics(false)
+	}
 
-	//if cfg.StoreInterval == 0 {
-	//	file.WriteMetrics(store, false, cfg)
-	//}
+	return err
 }

@@ -10,9 +10,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Router(store storage.MetricsStorage, cfg *config.Config) chi.Router {
+func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Config) chi.Router {
 	r := chi.NewRouter()
-	metricService := metrics.New(store, cfg)
+
+	metricService := metrics.New(store, fs, cfg)
 	newAPI := api.NewAPI(metricService, cfg)
 
 	r.Post("/update/", logger.Log.Request(gzip.GzipHandle(newAPI.UpdateMetricValueInBody(), false)))

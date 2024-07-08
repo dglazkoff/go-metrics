@@ -9,8 +9,6 @@ import (
 	"strconv"
 )
 
-// разбить на хендлеры и сервисы
-
 func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")

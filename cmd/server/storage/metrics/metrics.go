@@ -5,20 +5,24 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
-type storage []models.Metrics
+type storage struct {
+	metrics []models.Metrics
+}
 
 func New(metrics []models.Metrics) storage {
-	stor := append([]models.Metrics{}, metrics...)
+	storMetrics := append([]models.Metrics{}, metrics...)
 
-	return stor
+	return storage{
+		metrics: storMetrics,
+	}
 }
 
 func (s *storage) ReadMetrics() []models.Metrics {
-	return *s
+	return s.metrics
 }
 
 func (s *storage) ReadMetric(name string) (models.Metrics, error) {
-	for _, metric := range *s {
+	for _, metric := range s.metrics {
 		if metric.ID == name {
 			return metric, nil
 		}
@@ -28,15 +32,15 @@ func (s *storage) ReadMetric(name string) (models.Metrics, error) {
 }
 
 func (s *storage) UpdateMetric(metric models.Metrics) error {
-	for i, m := range *s {
+	for i, m := range s.metrics {
 		if m.ID == metric.ID {
 			if metric.MType == "gauge" {
-				(*s)[i] = metric
+				s.metrics[i] = metric
 				return nil
 			}
 
 			if metric.MType == "counter" {
-				*(*s)[i].Delta += *metric.Delta
+				*s.metrics[i].Delta += *metric.Delta
 				return nil
 			}
 
@@ -44,6 +48,10 @@ func (s *storage) UpdateMetric(metric models.Metrics) error {
 		}
 	}
 
-	*s = append(*s, metric)
+	s.metrics = append(s.metrics, metric)
 	return nil
+}
+
+func (s *storage) SaveMetrics(metrics []models.Metrics) {
+	s.metrics = append(s.metrics, metrics...)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -91,7 +92,8 @@ func TestUpdateMetricValue(t *testing.T) {
 			require.NoError(t, err)
 
 			store := metrics.New(tt.store)
-			ts := httptest.NewServer(Router(&store, &cfg))
+			fileStore := file.New(&store, &cfg)
+			ts := httptest.NewServer(Router(&store, &fileStore, &cfg))
 			defer ts.Close()
 
 			var b bytes.Buffer
