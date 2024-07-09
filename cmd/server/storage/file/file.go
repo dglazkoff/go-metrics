@@ -28,7 +28,7 @@ func New(s storage.MetricsStorage, cfg *config.Config) fileStorage {
 }
 
 func closeFile(f *os.File) {
-	fmt.Println("closing")
+	logger.Log.Debug("Closing file")
 	err := f.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -40,17 +40,30 @@ func (s fileStorage) ReadMetrics() {
 		return
 	}
 
-	dir, _ := os.Getwd()
+	dir, err := os.Getwd()
+
+	if err != nil {
+		logger.Log.Debug("Error while get current dir ", err)
+		return
+	}
+
 	path := filepath.Join(dir, s.cfg.FileStoragePath)
 
 	logger.Log.Debug("Opening file ", path)
 	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
-	defer closeFile(file)
+
+	/*
+		тут есть потенциальная проблема, если os.OpenFile вернет ошибку, то file будет nil и defer closeFile(file) вызовет панику.
+		По этой причине добавлять defer нужно после проверки на ошибку
+	*/
+	// defer closeFile(file)
 
 	if err != nil {
 		logger.Log.Debug("Error while open file ", err)
 		return
 	}
+
+	defer closeFile(file)
 
 	var metrics []models.Metrics
 	err = json.NewDecoder(file).Decode(&metrics)
@@ -79,19 +92,21 @@ func (s fileStorage) WriteMetrics(isLoop bool) {
 		return
 	}
 
-	var isLoopTemp = true
-
-	for isLoopTemp {
+	for {
 		time.Sleep(time.Duration(s.cfg.StoreInterval) * time.Second)
 
 		logger.Log.Debug("Opening file ", path)
 		file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-		defer closeFile(file)
 
 		if err != nil {
 			logger.Log.Debug("Error while open file ", err)
 			return
 		}
+
+		/*
+			этот defer отработает только когда завершится ф-я, она может никогда не завершится и цикл будет копить defer, по этой причине defer в цикле - плохая идея
+		*/
+		defer closeFile(file)
 
 		enc := json.NewEncoder(file)
 
@@ -102,7 +117,7 @@ func (s fileStorage) WriteMetrics(isLoop bool) {
 		}
 
 		if !isLoop {
-			isLoopTemp = false
+			break
 		}
 	}
 }
