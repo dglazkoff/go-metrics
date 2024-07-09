@@ -7,7 +7,7 @@ templ Metrics(metrics []models.Metrics) {
 	        <h3>Gauge metrics:</h3>
 	        <ul>
                 for _, metric := range metrics {
-                    if metric.MType == "gauge" {
+                    if metric.MType == _const.MetricTypeGauge {
                         <li>{ metric.ID }: { fmt.Sprint(*metric.Value) }</li>
                     }
                 }
@@ -15,7 +15,7 @@ templ Metrics(metrics []models.Metrics) {
             <h3>Counter metrics:</h3>
             <ul>
                 for _, metric := range metrics {
-                    if metric.MType == "counter" {
+                    if metric.MType == _const.MetricTypeCounter {
                         <li>{ metric.ID } { fmt.Sprint(*metric.Delta) }</li>
                     }
                 }

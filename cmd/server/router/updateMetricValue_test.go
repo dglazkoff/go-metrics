@@ -7,6 +7,7 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
+	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,9 +40,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "success test",
 			method: http.MethodPost,
 			store:  []models.Metrics{},
-			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
+			metric: models.Metrics{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue},
 			want: want{
-				store:      []models.Metrics{{ID: "value", MType: "counter", Delta: &deltaValue}},
+				store:      []models.Metrics{{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue}},
 				statusCode: http.StatusOK,
 			},
 		},
@@ -49,7 +50,7 @@ func TestUpdateMetricValue(t *testing.T) {
 			name:   "invalid method GET",
 			method: http.MethodGet,
 			store:  []models.Metrics{},
-			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
+			metric: models.Metrics{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue},
 			want: want{
 				store:      []models.Metrics{},
 				statusCode: http.StatusMethodNotAllowed,
@@ -58,30 +59,30 @@ func TestUpdateMetricValue(t *testing.T) {
 		{
 			name:   "add counter to previous result",
 			method: http.MethodPost,
-			store:  []models.Metrics{{ID: "value", MType: "counter", Delta: &deltaValue}},
-			metric: models.Metrics{ID: "value", MType: "counter", Delta: &deltaValue},
+			store:  []models.Metrics{{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue}},
+			metric: models.Metrics{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue},
 			want: want{
-				store:      []models.Metrics{{ID: "value", MType: "counter", Delta: &deltaResultValue}},
+				store:      []models.Metrics{{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaResultValue}},
 				statusCode: http.StatusOK,
 			},
 		},
 		{
 			name:   "update gauge metric",
 			method: http.MethodPost,
-			store:  []models.Metrics{{ID: "value", MType: "gauge", Value: &value}},
-			metric: models.Metrics{ID: "value", MType: "gauge", Value: &value},
+			store:  []models.Metrics{{ID: "value", MType: constants.MetricTypeGauge, Value: &value}},
+			metric: models.Metrics{ID: "value", MType: constants.MetricTypeGauge, Value: &value},
 			want: want{
-				store:      []models.Metrics{{ID: "value", MType: "gauge", Value: &value}},
+				store:      []models.Metrics{{ID: "value", MType: constants.MetricTypeGauge, Value: &value}},
 				statusCode: http.StatusOK,
 			},
 		},
 		{
 			name:   "add gauge metric",
 			method: http.MethodPost,
-			store:  []models.Metrics{{ID: "value", MType: "gauge", Value: &value}},
-			metric: models.Metrics{ID: "value1", MType: "gauge", Value: &value},
+			store:  []models.Metrics{{ID: "value", MType: constants.MetricTypeGauge, Value: &value}},
+			metric: models.Metrics{ID: "value1", MType: constants.MetricTypeGauge, Value: &value},
 			want: want{
-				store:      []models.Metrics{{ID: "value", MType: "gauge", Value: &value}, {ID: "value1", MType: "gauge", Value: &value}},
+				store:      []models.Metrics{{ID: "value", MType: constants.MetricTypeGauge, Value: &value}, {ID: "value1", MType: constants.MetricTypeGauge, Value: &value}},
 				statusCode: http.StatusOK,
 			},
 		},

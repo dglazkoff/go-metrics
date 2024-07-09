@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
@@ -34,12 +35,12 @@ func (s *storage) ReadMetric(name string) (models.Metrics, error) {
 func (s *storage) UpdateMetric(metric models.Metrics) error {
 	for i, m := range s.metrics {
 		if m.ID == metric.ID {
-			if metric.MType == "gauge" {
+			if metric.MType == constants.MetricTypeGauge {
 				s.metrics[i] = metric
 				return nil
 			}
 
-			if metric.MType == "counter" {
+			if metric.MType == constants.MetricTypeCounter {
 				*s.metrics[i].Delta += *metric.Delta
 				return nil
 			}

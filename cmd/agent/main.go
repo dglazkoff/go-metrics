@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"github.com/dglazkoff/go-metrics/cmd/agent/logger"
+	_const "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
 	"math/rand"
@@ -25,7 +26,7 @@ type CounterMetrics struct {
 var client = resty.New()
 
 func updateGaugeMetric(name string, value float64) {
-	body, err := json.Marshal(models.Metrics{MType: "gauge", ID: name, Value: &value})
+	body, err := json.Marshal(models.Metrics{MType: _const.MetricTypeGauge, ID: name, Value: &value})
 
 	if err != nil {
 		logger.Log.Debug("Error while marshal data: ", err)
@@ -58,7 +59,7 @@ func updateGaugeMetric(name string, value float64) {
 }
 
 func updateCounterMetric(name string, value int64) {
-	body, err := json.Marshal(models.Metrics{MType: "counter", ID: name, Delta: &value})
+	body, err := json.Marshal(models.Metrics{MType: _const.MetricTypeCounter, ID: name, Delta: &value})
 
 	if err != nil {
 		logger.Log.Debug("Error while marshal data: ", err)

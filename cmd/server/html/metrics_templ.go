@@ -8,6 +8,7 @@ package html
 import (
 	"fmt"
 	"github.com/a-h/templ"
+	_const "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 import "context"
@@ -21,7 +22,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 			templ_7745c5c3_Buffer = templ.GetBuffer()
 			defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 		}
-		templ.InitializeContext(ctx)
+		ctx = templ.InitializeContext(ctx)
 		templ_7745c5c3_Var1 := templ.GetChildren(ctx)
 		if templ_7745c5c3_Var1 == nil {
 			templ_7745c5c3_Var1 = templ.NopComponent
@@ -32,7 +33,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, metric := range metrics {
-			if metric.MType == "gauge" {
+			if metric.MType == _const.MetricTypeGauge {
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -40,7 +41,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(metric.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/server/html/metrics.templ`, Line: 11, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `html/metrics.templ`, Line: 11, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -53,7 +54,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(*metric.Value))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/server/html/metrics.templ`, Line: 11, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `html/metrics.templ`, Line: 11, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -70,7 +71,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, metric := range metrics {
-			if metric.MType == "counter" {
+			if metric.MType == _const.MetricTypeCounter {
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -78,7 +79,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(metric.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/server/html/metrics.templ`, Line: 19, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `html/metrics.templ`, Line: 19, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -91,7 +92,7 @@ func Metrics(metrics []models.Metrics) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(*metric.Delta))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/server/html/metrics.templ`, Line: 19, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `html/metrics.templ`, Line: 19, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {

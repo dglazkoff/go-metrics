@@ -5,6 +5,7 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
+	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
@@ -37,12 +38,12 @@ func (s service) GetAll() []models.Metrics {
 }
 
 func (s service) Update(metric models.Metrics) error {
-	if metric.MType != "gauge" && metric.MType != "counter" {
+	if metric.MType != constants.MetricTypeGauge && metric.MType != constants.MetricTypeCounter {
 		logger.Log.Debug("Wrong type")
 		return errors.New("wrong type")
 	}
 
-	if metric.MType == "gauge" {
+	if metric.MType == constants.MetricTypeGauge {
 		// протестировать что не передал и протестировать неправильный формат
 		if metric.Value == nil {
 			logger.Log.Debug("Required Value field for gauge metric type")
@@ -50,7 +51,7 @@ func (s service) Update(metric models.Metrics) error {
 		}
 	}
 
-	if metric.MType == "counter" {
+	if metric.MType == constants.MetricTypeCounter {
 		if metric.Delta == nil {
 			logger.Log.Debug("Required Delta field for counter metric type")
 			return errors.New("required Delta field for counter metric type")

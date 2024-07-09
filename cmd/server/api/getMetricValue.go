@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
+	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -14,7 +15,7 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
-		if metricType != "gauge" && metricType != "counter" {
+		if metricType != constants.MetricTypeGauge && metricType != constants.MetricTypeCounter {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -53,7 +54,7 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 			return
 		}
 
-		if metric.MType != "gauge" && metric.MType != "counter" {
+		if metric.MType != constants.MetricTypeGauge && metric.MType != constants.MetricTypeCounter {
 			logger.Log.Debug("Wrong type")
 			w.WriteHeader(http.StatusBadRequest)
 			return

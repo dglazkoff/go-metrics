@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"github.com/dglazkoff/go-metrics/cmd/server/logger"
+	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -17,7 +18,7 @@ func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 
 		var model models.Metrics
 
-		if metricType == "gauge" {
+		if metricType == constants.MetricTypeGauge {
 			floatValue, err := strconv.ParseFloat(metricValue, 64)
 
 			if err != nil {
@@ -29,7 +30,7 @@ func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 			model = models.Metrics{ID: metricName, MType: metricType, Value: &floatValue}
 		}
 
-		if metricType == "counter" {
+		if metricType == constants.MetricTypeCounter {
 			intValue, err := strconv.ParseInt(metricValue, 10, 64)
 
 			if err != nil {
