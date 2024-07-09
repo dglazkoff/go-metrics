@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
-	"github.com/dglazkoff/go-metrics/cmd/server/logger"
+	"github.com/dglazkoff/go-metrics/internal/logger"
 )
 
 func main() {

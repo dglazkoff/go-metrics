@@ -4,9 +4,9 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/api"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/gzip"
-	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/cmd/server/services/metrics"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
+	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
 )
 

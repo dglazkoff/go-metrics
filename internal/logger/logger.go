@@ -6,9 +6,11 @@ import (
 	"time"
 )
 
-type Log struct {
+type Logger struct {
 	*zap.SugaredLogger
 }
+
+var Log *Logger
 
 type (
 	responseData struct {
@@ -33,20 +35,26 @@ func (w *loggingResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func Initialize() (*Log, error) {
+func Initialize() error {
+	if Log != nil {
+		return nil
+	}
+
 	logger, err := zap.NewDevelopment()
 	defer logger.Sync()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	sugar := logger.Sugar()
 
-	return &Log{sugar}, nil
+	Log = &Logger{sugar}
+
+	return nil
 }
 
-func (log *Log) Request(h http.HandlerFunc) http.HandlerFunc {
+func (log *Logger) Request(h http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		start := time.Now()
 

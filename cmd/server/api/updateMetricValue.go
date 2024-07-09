@@ -2,8 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/dglazkoff/go-metrics/cmd/server/logger"
 	"github.com/dglazkoff/go-metrics/internal/const"
+	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-chi/chi/v5"
 	"net/http"

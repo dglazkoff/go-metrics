@@ -2,7 +2,7 @@ package gzip
 
 import (
 	"compress/gzip"
-	"github.com/dglazkoff/go-metrics/cmd/server/logger"
+	"github.com/dglazkoff/go-metrics/internal/logger"
 	"io"
 	"net/http"
 	"strings"
