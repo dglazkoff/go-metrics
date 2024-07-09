@@ -29,18 +29,15 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 		// не нравится что логика работы со значениями метрики в хендлере
 
 		/*
-			@tmvrus
 			fmt.Sprint делает преобразование "всего что угодно" в строку, и тут могут быть проблемы в постедствии, когда структура хранения усложнится
 			лучше всегда использовать явное преобразование, что бы читать кода всегда видел из какого типа в какой идет преобрзование, в данном случае подойдет fmt.Sprintf("%d", value) тут явным образом ожидается число
-
-			если делать fmt.Sprintf("%d", value), то добавляются лишние нули в конце
 		*/
 		if value.Delta != nil {
-			w.Write([]byte(fmt.Sprint(*value.Delta)))
+			fmt.Fprintf(w, "%d", *value.Delta)
 		}
 
 		if value.Value != nil {
-			w.Write([]byte(fmt.Sprint(*value.Value)))
+			fmt.Fprintf(w, "%g", *value.Value)
 		}
 
 		w.Header().Set("Content-Type", "text/plain")
@@ -53,6 +50,7 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 		var metric models.Metrics
 		if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
 			logger.Log.Debug("Error while decode", err)
+			return
 		}
 
 		if metric.MType != "gauge" && metric.MType != "counter" {
@@ -62,6 +60,8 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 		}
 
 		// @tmvrus почему тут выставление заголовка заработало, а ниже не работало?
+
+		// @tmvrus: на сколько я помню все хедеры должны быть записаны до вызова Write
 		w.Header().Set("Content-Type", "application/json")
 
 		enc := json.NewEncoder(w)

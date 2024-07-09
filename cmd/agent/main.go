@@ -41,7 +41,12 @@ func updateGaugeMetric(name string, value float64) {
 		return
 	}
 
-	zb.Close()
+	err = zb.Close()
+
+	if err != nil {
+		logger.Log.Debug("Error on close gzip writer: ", err)
+		return
+	}
 
 	logger.Log.Debug("Do request to /update/")
 	_, err = client.R().SetBody(buf).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/update/")
@@ -69,7 +74,12 @@ func updateCounterMetric(name string, value int64) {
 		return
 	}
 
-	zb.Close()
+	err = zb.Close()
+
+	if err != nil {
+		logger.Log.Debug("Error on close gzip writer: ", err)
+		return
+	}
 
 	logger.Log.Debug("Do request to /update/")
 	_, err = client.R().SetBody(buf).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/update/")
