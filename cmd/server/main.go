@@ -1,9 +1,19 @@
 package main
 
-func main() {
-	parseFlags()
+import (
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
+	"github.com/dglazkoff/go-metrics/internal/logger"
+)
 
-	if err := Run(); err != nil {
+func main() {
+	cfg := config.ParseConfig()
+	err := logger.Initialize()
+
+	if err != nil {
 		panic(err)
+	}
+
+	if err := Run(&cfg); err != nil {
+		logger.Log.Debug("Error on starting server", "err", err)
 	}
 }

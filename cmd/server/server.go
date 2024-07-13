@@ -1,15 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"github.com/dglazkoff/go-metrics/cmd/server/handlers"
-	"github.com/dglazkoff/go-metrics/cmd/server/storage"
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
+	"github.com/dglazkoff/go-metrics/cmd/server/router"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
+	"github.com/dglazkoff/go-metrics/internal/logger"
+	"github.com/dglazkoff/go-metrics/internal/models"
 	"net/http"
 )
 
-func Run() error {
-	store := storage.MemStorage{GaugeMetrics: make(map[string]float64), CounterMetrics: make(map[string]int64)}
+func Run(cfg *config.Config) error {
+	store := metrics.New([]models.Metrics{})
 
-	fmt.Println("Running server on ", flagRunAddr)
-	return http.ListenAndServe(flagRunAddr, handlers.Router(&store))
+	fileStorage := file.New(&store, cfg)
+	fileStorage.ReadMetrics()
+
+	logger.Log.Infow("Starting Server on ", "addr", cfg.RunAddr)
+
+	if cfg.StoreInterval != 0 {
+		go fileStorage.WriteMetrics(true)
+	}
+
+	return http.ListenAndServe(cfg.RunAddr, router.Router(&store, &fileStorage, cfg))
 }
