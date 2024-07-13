@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -11,15 +12,19 @@ type Config struct {
 	StoreInterval   int
 	FileStoragePath string
 	IsRestore       bool
+	DatabaseDSN     string
 }
 
 func ParseConfig() Config {
 	cfg := Config{}
+	databaseDSNDefault := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
+		`localhost`, `postgres`, `12345678`, `metrics`)
 
 	flag.StringVar(&cfg.RunAddr, "a", ":8080", "address of the server")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "file path of metrics storage")
 	flag.IntVar(&cfg.StoreInterval, "i", 300, "interval to save metrics on disk")
 	flag.BoolVar(&cfg.IsRestore, "r", true, "is restore saved metrics data")
+	flag.StringVar(&cfg.DatabaseDSN, "d", databaseDSNDefault, "database dsn string")
 	flag.Parse()
 
 	if runAddr := os.Getenv("ADDRESS"); runAddr != "" {
@@ -44,6 +49,10 @@ func ParseConfig() Config {
 		if err == nil {
 			cfg.IsRestore = value
 		}
+	}
+
+	if databaseDSN := os.Getenv("DATABASE_DSN"); databaseDSN != "" {
+		cfg.DatabaseDSN = databaseDSN
 	}
 
 	return cfg

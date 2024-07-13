@@ -24,5 +24,7 @@ func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Co
 
 	r.Get("/", logger.Log.Request(gzip.GzipHandle(newAPI.GetHTML(), true)))
 
+	r.Get("/ping", logger.Log.Request(newAPI.PingDB()))
+
 	return r
 }

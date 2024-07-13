@@ -1,20 +1,28 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
+	"time"
 )
+
+type db interface {
+	PingContext(ctx context.Context) error
+}
 
 type storage struct {
 	metrics []models.Metrics
+	db      db
 }
 
-func New(metrics []models.Metrics) storage {
-	storMetrics := append([]models.Metrics{}, metrics...)
+func New(metrics []models.Metrics, db db) storage {
+	storeMetrics := append([]models.Metrics{}, metrics...)
 
 	return storage{
-		metrics: storMetrics,
+		metrics: storeMetrics,
+		db:      db,
 	}
 }
 
@@ -55,4 +63,15 @@ func (s *storage) UpdateMetric(metric models.Metrics) error {
 
 func (s *storage) SaveMetrics(metrics []models.Metrics) {
 	s.metrics = append(s.metrics, metrics...)
+}
+
+func (s *storage) PingDB() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	if err := s.db.PingContext(ctx); err != nil {
+		return fmt.Errorf("no connection to database")
+	}
+
+	return nil
 }

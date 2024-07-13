@@ -7,6 +7,7 @@ type MetricsStorage interface {
 	ReadMetrics() []models.Metrics
 	UpdateMetric(metric models.Metrics) error
 	SaveMetrics(metrics []models.Metrics)
+	PingDB() error
 }
 
 type FileStorage interface {

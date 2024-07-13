@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/internal/logger"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {

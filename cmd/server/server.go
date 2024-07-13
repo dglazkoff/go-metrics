@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/router"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
@@ -11,7 +12,14 @@ import (
 )
 
 func Run(cfg *config.Config) error {
-	store := metrics.New([]models.Metrics{})
+	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+
+	if err != nil {
+		logger.Log.Debug("Error on starting db", "err", err)
+	}
+	defer db.Close()
+
+	store := metrics.New([]models.Metrics{}, db)
 
 	fileStorage := file.New(&store, cfg)
 	fileStorage.ReadMetrics()

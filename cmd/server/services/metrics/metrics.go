@@ -17,6 +17,7 @@ type metricStorage interface {
 	ReadMetric(name string) (models.Metrics, error)
 	ReadMetrics() []models.Metrics
 	UpdateMetric(metric models.Metrics) error
+	PingDB() error
 }
 
 type service struct {
@@ -64,4 +65,8 @@ func (s service) Update(metric models.Metrics) error {
 	}
 
 	return err
+}
+
+func (s service) PingDB() error {
+	return s.storage.PingDB()
 }

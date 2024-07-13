@@ -9,6 +9,7 @@ type metric interface {
 	Get(name string) (models.Metrics, error)
 	GetAll() []models.Metrics
 	Update(metric models.Metrics) error
+	PingDB() error
 }
 
 // не делаем экспортируемых полей чтобы скрыть
