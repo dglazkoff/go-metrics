@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"errors"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
@@ -17,7 +18,7 @@ type metricStorage interface {
 	ReadMetric(name string) (models.Metrics, error)
 	ReadMetrics() []models.Metrics
 	UpdateMetric(metric models.Metrics) error
-	PingDB() error
+	PingDB(ctx context.Context) error
 }
 
 type service struct {
@@ -67,6 +68,6 @@ func (s service) Update(metric models.Metrics) error {
 	return err
 }
 
-func (s service) PingDB() error {
-	return s.storage.PingDB()
+func (s service) PingDB(ctx context.Context) error {
+	return s.storage.PingDB(ctx)
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
-	"time"
 )
 
 type db interface {
@@ -44,6 +43,7 @@ func (s *storage) UpdateMetric(metric models.Metrics) error {
 	for i, m := range s.metrics {
 		if m.ID == metric.ID {
 			if metric.MType == constants.MetricTypeGauge {
+
 				s.metrics[i] = metric
 				return nil
 			}
@@ -65,10 +65,7 @@ func (s *storage) SaveMetrics(metrics []models.Metrics) {
 	s.metrics = append(s.metrics, metrics...)
 }
 
-func (s *storage) PingDB() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
+func (s *storage) PingDB(ctx context.Context) error {
 	if err := s.db.PingContext(ctx); err != nil {
 		return fmt.Errorf("no connection to database")
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Config) chi.Router {
+func Router(store storage.MetricsStorage, fs storage.StaticStorage, cfg *config.Config) chi.Router {
 	r := chi.NewRouter()
 
 	metricService := metrics.New(store, fs, cfg)

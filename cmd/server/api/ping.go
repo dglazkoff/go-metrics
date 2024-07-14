@@ -6,7 +6,7 @@ import (
 
 func (a API) PingDB() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := a.metricsService.PingDB()
+		err := a.metricsService.PingDB(r.Context())
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
