@@ -16,7 +16,7 @@ type fileStorage interface {
 
 type metricStorage interface {
 	ReadMetric(name string) (models.Metrics, error)
-	ReadMetrics() []models.Metrics
+	ReadMetrics() ([]models.Metrics, error)
 	UpdateMetric(metric models.Metrics) error
 	PingDB(ctx context.Context) error
 }
@@ -35,7 +35,7 @@ func (s service) Get(name string) (models.Metrics, error) {
 	return s.storage.ReadMetric(name)
 }
 
-func (s service) GetAll() []models.Metrics {
+func (s service) GetAll() ([]models.Metrics, error) {
 	return s.storage.ReadMetrics()
 }
 

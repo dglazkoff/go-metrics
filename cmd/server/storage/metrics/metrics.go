@@ -7,26 +7,20 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
-type db interface {
-	PingContext(ctx context.Context) error
-}
-
 type storage struct {
 	metrics []models.Metrics
-	db      db
 }
 
-func New(metrics []models.Metrics, db db) storage {
+func New(metrics []models.Metrics) *storage {
 	storeMetrics := append([]models.Metrics{}, metrics...)
 
-	return storage{
+	return &storage{
 		metrics: storeMetrics,
-		db:      db,
 	}
 }
 
-func (s *storage) ReadMetrics() []models.Metrics {
-	return s.metrics
+func (s *storage) ReadMetrics() ([]models.Metrics, error) {
+	return s.metrics, nil
 }
 
 func (s *storage) ReadMetric(name string) (models.Metrics, error) {
@@ -66,9 +60,5 @@ func (s *storage) SaveMetrics(metrics []models.Metrics) {
 }
 
 func (s *storage) PingDB(ctx context.Context) error {
-	if err := s.db.PingContext(ctx); err != nil {
-		return fmt.Errorf("no connection to database")
-	}
-
 	return nil
 }

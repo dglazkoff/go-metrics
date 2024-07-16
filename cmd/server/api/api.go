@@ -8,7 +8,7 @@ import (
 
 type metric interface {
 	Get(name string) (models.Metrics, error)
-	GetAll() []models.Metrics
+	GetAll() ([]models.Metrics, error)
 	Update(metric models.Metrics) error
 	PingDB(ctx context.Context) error
 }

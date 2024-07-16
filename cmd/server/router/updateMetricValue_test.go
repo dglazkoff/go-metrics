@@ -99,9 +99,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			err := logger.Initialize()
 			require.NoError(t, err)
 
-			store := metrics.New(tt.store, dbMock{})
-			fileStore := file.New(&store, &cfg)
-			ts := httptest.NewServer(Router(&store, &fileStore, &cfg))
+			store := metrics.New(tt.store)
+			fileStore := file.New(store, &cfg)
+			ts := httptest.NewServer(Router(store, &fileStore, &cfg))
 			defer ts.Close()
 
 			var b bytes.Buffer
@@ -118,7 +118,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.want.store, store.ReadMetrics())
+			res, err := store.ReadMetrics()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want.store, res)
 		})
 	}
 }

@@ -21,31 +21,28 @@ func Run(cfg *config.Config) error {
 	}
 	defer pgDB.Close()
 
-	store := metrics.New([]models.Metrics{}, pgDB)
-
-	var staticStorage storage.StaticStorage
+	var store storage.MetricsStorage
 
 	if cfg.DatabaseDSN != "" {
-		_, err = pgDB.Exec("CREATE TABLE IF NOT EXISTS metrics (id VARCHAR(250) PRIMARY KEY, type VARCHAR(250) NOT NULL, value DOUBLE PRECISION, delta INTEGER)")
+		dbStore := db.New(pgDB, cfg)
+		err = db.Bootstrap(dbStore)
 
-		if err != nil {
-			logger.Log.Debug("error while creating table ", err)
+		if err == nil {
+			store = dbStore
 		}
-
-		dbStorage := db.New(pgDB, &store, cfg)
-		staticStorage = dbStorage
 	} else {
-		fileStorage := file.New(&store, cfg)
-		staticStorage = fileStorage
+		store = metrics.New([]models.Metrics{})
 	}
 
-	staticStorage.ReadMetrics()
+	fileStorage := file.New(store, cfg)
+
+	fileStorage.ReadMetrics()
 
 	logger.Log.Infow("Starting Server on ", "addr", cfg.RunAddr)
 
 	if cfg.StoreInterval != 0 {
-		go staticStorage.WriteMetrics(true)
+		go fileStorage.WriteMetrics(true)
 	}
 
-	return http.ListenAndServe(cfg.RunAddr, router.Router(&store, staticStorage, cfg))
+	return http.ListenAndServe(cfg.RunAddr, router.Router(store, fileStorage, cfg))
 }

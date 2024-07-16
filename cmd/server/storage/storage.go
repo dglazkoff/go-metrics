@@ -7,13 +7,13 @@ import (
 
 type MetricsStorage interface {
 	ReadMetric(name string) (models.Metrics, error)
-	ReadMetrics() []models.Metrics
+	ReadMetrics() ([]models.Metrics, error)
 	UpdateMetric(metric models.Metrics) error
 	SaveMetrics(metrics []models.Metrics)
 	PingDB(ctx context.Context) error
 }
 
-type StaticStorage interface {
+type FileStorage interface {
 	WriteMetrics(isLoop bool)
 	ReadMetrics()
 }

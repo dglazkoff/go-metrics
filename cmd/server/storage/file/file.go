@@ -14,7 +14,7 @@ import (
 
 type metricStorage interface {
 	SaveMetrics(metrics []models.Metrics)
-	ReadMetrics() []models.Metrics
+	ReadMetrics() ([]models.Metrics, error)
 }
 
 type fileStorage struct {
@@ -110,7 +110,15 @@ func (s fileStorage) WriteMetrics(isLoop bool) {
 
 		enc := json.NewEncoder(file)
 
-		err = enc.Encode(s.storage.ReadMetrics())
+		metrics, err := s.storage.ReadMetrics()
+
+		if err != nil {
+			logger.Log.Debug("Error while read metrics ", err)
+			return
+
+		}
+
+		err = enc.Encode(metrics)
 
 		if err != nil {
 			logger.Log.Debug("Error while write store to file ", err)
