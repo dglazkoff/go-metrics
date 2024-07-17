@@ -74,20 +74,21 @@ func (d *dbStorage) ReadMetric(id string) (models.Metrics, error) {
 }
 
 func (d *dbStorage) UpdateMetric(metric models.Metrics) error {
+	dbMetric, err := d.ReadMetric(metric.ID)
+
+	if err != nil {
+		_, err = d.db.Exec("INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
+		return err
+	}
+
 	if metric.MType == constants.MetricTypeGauge {
-		_, err := d.db.Exec("INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
+		_, err = d.db.Exec("UPDATE metrics SET value = $1 WHERE id = $2", metric.Value, metric.ID)
 		return err
 	}
 
 	if metric.MType == constants.MetricTypeCounter {
-		dbMetric, err := d.ReadMetric(metric.ID)
-
-		if err != nil {
-			_, err = d.db.Exec("INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
-			return err
-		}
-
-		_, err = d.db.Exec("UPDATE metrics SET delta = $1 WHERE id = $2", *dbMetric.Delta+*metric.Delta, metric.ID)
+		newDelta := *dbMetric.Delta + *metric.Delta
+		_, err = d.db.Exec("UPDATE metrics SET delta = $1 WHERE id = $2", &newDelta, metric.ID)
 		return err
 	}
 

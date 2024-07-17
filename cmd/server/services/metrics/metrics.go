@@ -68,6 +68,18 @@ func (s service) Update(metric models.Metrics) error {
 	return err
 }
 
+// возможно стоит вызывать обновление списка из стора и там использовать транзакцию
+func (s service) UpdateList(metrics []models.Metrics) error {
+	for _, metric := range metrics {
+		err := s.Update(metric)
+		if err != nil {
+			logger.Log.Debug("Error while updating metric ", err)
+		}
+	}
+
+	return nil
+}
+
 func (s service) PingDB(ctx context.Context) error {
 	return s.storage.PingDB(ctx)
 }

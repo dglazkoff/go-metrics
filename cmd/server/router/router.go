@@ -19,6 +19,8 @@ func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Co
 	r.Post("/update/", logger.Log.Request(gzip.GzipHandle(newAPI.UpdateMetricValueInBody(), false)))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", logger.Log.Request(gzip.GzipHandle(newAPI.UpdateMetricValueInRequest(), false)))
 
+	r.Post("/updates/", logger.Log.Request(gzip.GzipHandle(newAPI.UpdateList(), false)))
+
 	r.Post("/value/", logger.Log.Request(gzip.GzipHandle(newAPI.GetMetricValueInBody(), false)))
 	r.Get("/value/{metricType}/{metricName}", logger.Log.Request(gzip.GzipHandle(newAPI.GetMetricValueInRequest(), false)))
 
