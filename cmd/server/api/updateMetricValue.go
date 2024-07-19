@@ -45,6 +45,7 @@ func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 		err := a.metricsService.Update(model)
 
 		if err != nil {
+			logger.Log.Debug("Error while update metric: ", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -65,6 +66,7 @@ func (a API) UpdateMetricValueInBody() http.HandlerFunc {
 		err := a.metricsService.Update(metric)
 
 		if err != nil {
+			logger.Log.Debug("Error while update metric: ", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
 	"math/rand"
+	"net/url"
 	"reflect"
 	"runtime"
 	"time"
@@ -24,6 +26,27 @@ type CounterMetrics struct {
 }
 
 var client = resty.New()
+var retryIntervals = []time.Duration{1, 3, 5}
+
+func sendRequest(body interface{}, retryNumber int) {
+	logger.Log.Debug("Do request to /updates/")
+	_, err := client.R().SetBody(body).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/updates/")
+
+	if err != nil {
+		logger.Log.Debug("Error on request: ", err)
+
+		// @tmvrus Как нам перехватить ошибку, что именно проблема с соединением?
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			if retryNumber == 3 {
+				return
+			}
+
+			time.Sleep(retryIntervals[retryNumber] * time.Second)
+			sendRequest(body, retryNumber+1)
+		}
+	}
+}
 
 func sendBody(body []byte) {
 	buf := bytes.NewBuffer(nil)
@@ -42,13 +65,7 @@ func sendBody(body []byte) {
 		return
 	}
 
-	logger.Log.Debug("Do request to /updates/")
-	_, err = client.R().SetBody(buf).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/updates/")
-
-	if err != nil {
-		logger.Log.Debug("Error on request: ", err)
-		return
-	}
+	sendRequest(buf, 0)
 }
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
@@ -119,43 +136,6 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		cm.PollCount += 1
 	}
 }
-
-//func writeMetrics(metrics *[]models.Metrics, cfg *Config) {
-//	writeMetricsInterval := time.Duration(cfg.pollInterval) * time.Second
-//
-//	for {
-//		time.Sleep(writeMetricsInterval)
-//
-//		var memStats runtime.MemStats
-//		runtime.ReadMemStats(&memStats)
-//
-//		valuesGmMemStats := reflect.ValueOf(memStats)
-//		typesGmMemStats := valuesGmMemStats.Type()
-//		for i := 0; i < valuesGmMemStats.NumField(); i++ {
-//			field := valuesGmMemStats.Field(i)
-//			var metric models.Metrics
-//
-//			switch field.Kind() {
-//			case reflect.Float32, reflect.Float64:
-//				value := field.Float()
-//				metric = models.Metrics{MType: constants.MetricTypeGauge, ID: typesGmMemStats.Field(i).Name, Value: &value}
-//			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-//				value := float64(field.Uint())
-//				metric = models.Metrics{MType: constants.MetricTypeGauge, ID: typesGmMemStats.Field(i).Name, Value: &value}
-//			default:
-//				continue
-//			}
-//
-//			*metrics = append(*metrics, metric)
-//		}
-//
-//		randomValue := rand.Float64()
-//		countDelta := int64(1)
-//		*metrics = append(*metrics, models.Metrics{MType: constants.MetricTypeGauge, ID: "RandomValue", Value: &randomValue})
-//		*metrics = append(*metrics, models.Metrics{MType: constants.MetricTypeCounter, ID: "PollCount", Delta: &countDelta})
-//		cm.PollCount += 1
-//	}
-//}
 
 func main() {
 	cfg := parseConfig()
