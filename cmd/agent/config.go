@@ -10,6 +10,7 @@ type Config struct {
 	runAddr        string
 	pollInterval   int
 	reportInterval int
+	secretKey      string
 }
 
 /*
@@ -23,6 +24,7 @@ func parseConfig() Config {
 	flag.StringVar(&config.runAddr, "a", ":8080", "address of the server")
 	flag.IntVar(&config.reportInterval, "r", 10, "частота отправки метрик на сервер")
 	flag.IntVar(&config.pollInterval, "p", 2, "частота опроса метрик из пакета runtime")
+	flag.StringVar(&config.secretKey, "k", "", "ключ для кодирования запроса")
 	flag.Parse()
 
 	if runAddr := os.Getenv("ADDRESS"); runAddr != "" {
@@ -43,6 +45,10 @@ func parseConfig() Config {
 		if err == nil {
 			config.reportInterval = value
 		}
+	}
+
+	if secretKey := os.Getenv("KEY"); secretKey != "" {
+		config.secretKey = secretKey
 	}
 
 	return config

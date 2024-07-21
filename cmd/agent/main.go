@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"github.com/dglazkoff/go-metrics/internal/const"
@@ -28,9 +31,15 @@ type CounterMetrics struct {
 var client = resty.New()
 var retryIntervals = []time.Duration{1, 3, 5}
 
-func sendRequest(body interface{}, retryNumber int) {
+func sendRequest(body interface{}, hash []byte, retryNumber int) {
 	logger.Log.Debug("Do request to /updates/")
-	_, err := client.R().SetBody(body).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json").Post("/updates/")
+	request := client.R().SetBody(body).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json")
+
+	if hash != nil {
+		request.SetHeader("HashSHA256", hex.EncodeToString(hash))
+	}
+
+	_, err := request.Post("/updates/")
 
 	if err != nil {
 		logger.Log.Debug("Error on request: ", err)
@@ -42,12 +51,12 @@ func sendRequest(body interface{}, retryNumber int) {
 			}
 
 			time.Sleep(retryIntervals[retryNumber] * time.Second)
-			sendRequest(body, retryNumber+1)
+			sendRequest(body, hash, retryNumber+1)
 		}
 	}
 }
 
-func sendBody(body []byte) {
+func sendBody(body []byte, cfg *Config) {
 	buf := bytes.NewBuffer(nil)
 	zb := gzip.NewWriter(buf)
 	_, err := zb.Write(body)
@@ -64,7 +73,15 @@ func sendBody(body []byte) {
 		return
 	}
 
-	sendRequest(buf, 0)
+	var hash []byte
+	if cfg.secretKey != "" {
+		logger.Log.Debug("Encoding body")
+		h := hmac.New(sha256.New, []byte(cfg.secretKey))
+		h.Write(buf.Bytes())
+		hash = h.Sum(nil)
+	}
+
+	sendRequest(buf, hash, 0)
 }
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
@@ -117,7 +134,7 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 			return
 		}
 
-		sendBody(body)
+		sendBody(body, cfg)
 	}
 }
 
