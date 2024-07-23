@@ -74,6 +74,7 @@ func (s service) UpdateList(ctx context.Context, metrics []models.Metrics) error
 		err := s.Update(ctx, metric)
 		if err != nil {
 			logger.Log.Debug("Error while updating metric ", err)
+			return err
 		}
 	}
 

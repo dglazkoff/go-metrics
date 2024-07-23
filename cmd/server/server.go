@@ -27,9 +27,11 @@ func Run(cfg *config.Config) error {
 		dbStore := db.New(pgDB, cfg)
 		err = db.Bootstrap(dbStore)
 
-		if err == nil {
-			store = dbStore
+		if err != nil {
+			panic(err)
 		}
+
+		store = dbStore
 	} else {
 		store = metrics.New([]models.Metrics{})
 	}
