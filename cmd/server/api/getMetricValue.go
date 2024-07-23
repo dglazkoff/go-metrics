@@ -20,7 +20,7 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 			return
 		}
 
-		value, err := a.metricsService.Get(metricName)
+		value, err := a.metricsService.Get(r.Context(), metricName)
 
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
@@ -67,7 +67,7 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 
 		enc := json.NewEncoder(w)
 
-		value, err := a.metricsService.Get(metric.ID)
+		value, err := a.metricsService.Get(r.Context(), metric.ID)
 
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)

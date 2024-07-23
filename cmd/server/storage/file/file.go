@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
@@ -13,8 +14,8 @@ import (
 )
 
 type metricStorage interface {
-	SaveMetrics(metrics []models.Metrics)
-	ReadMetrics() ([]models.Metrics, error)
+	SaveMetrics(ctx context.Context, metrics []models.Metrics)
+	ReadMetrics(ctx context.Context) ([]models.Metrics, error)
 }
 
 type fileStorage struct {
@@ -40,6 +41,7 @@ func (s fileStorage) ReadMetrics() {
 		return
 	}
 
+	ctx := context.Background()
 	dir, err := os.Getwd()
 
 	if err != nil {
@@ -73,7 +75,7 @@ func (s fileStorage) ReadMetrics() {
 		return
 	}
 
-	s.storage.SaveMetrics(metrics)
+	s.storage.SaveMetrics(ctx, metrics)
 }
 
 func (s fileStorage) WriteMetrics(isLoop bool) {
@@ -81,6 +83,7 @@ func (s fileStorage) WriteMetrics(isLoop bool) {
 		return
 	}
 
+	ctx := context.Background()
 	dir, _ := os.Getwd()
 	path := filepath.Join(dir, s.cfg.FileStoragePath)
 
@@ -110,7 +113,7 @@ func (s fileStorage) WriteMetrics(isLoop bool) {
 
 		enc := json.NewEncoder(file)
 
-		metrics, err := s.storage.ReadMetrics()
+		metrics, err := s.storage.ReadMetrics(ctx)
 
 		if err != nil {
 			logger.Log.Debug("Error while read metrics ", err)

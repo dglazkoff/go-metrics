@@ -15,9 +15,9 @@ type fileStorage interface {
 }
 
 type metricStorage interface {
-	ReadMetric(name string) (models.Metrics, error)
-	ReadMetrics() ([]models.Metrics, error)
-	UpdateMetric(metric models.Metrics) error
+	ReadMetric(ctx context.Context, name string) (models.Metrics, error)
+	ReadMetrics(ctx context.Context) ([]models.Metrics, error)
+	UpdateMetric(ctx context.Context, metric models.Metrics) error
 	PingDB(ctx context.Context) error
 }
 
@@ -31,15 +31,15 @@ func New(s storage.MetricsStorage, f fileStorage, cfg *config.Config) service {
 	return service{storage: s, cfg: cfg, fileStorage: f}
 }
 
-func (s service) Get(name string) (models.Metrics, error) {
-	return s.storage.ReadMetric(name)
+func (s service) Get(ctx context.Context, name string) (models.Metrics, error) {
+	return s.storage.ReadMetric(ctx, name)
 }
 
-func (s service) GetAll() ([]models.Metrics, error) {
-	return s.storage.ReadMetrics()
+func (s service) GetAll(ctx context.Context) ([]models.Metrics, error) {
+	return s.storage.ReadMetrics(ctx)
 }
 
-func (s service) Update(metric models.Metrics) error {
+func (s service) Update(ctx context.Context, metric models.Metrics) error {
 	if metric.MType != constants.MetricTypeGauge && metric.MType != constants.MetricTypeCounter {
 		logger.Log.Debug("Wrong type")
 		return errors.New("wrong type")
@@ -60,7 +60,7 @@ func (s service) Update(metric models.Metrics) error {
 		}
 	}
 
-	err := s.storage.UpdateMetric(metric)
+	err := s.storage.UpdateMetric(ctx, metric)
 	if s.cfg.StoreInterval == 0 && err == nil {
 		s.fileStorage.WriteMetrics(false)
 	}
@@ -69,9 +69,9 @@ func (s service) Update(metric models.Metrics) error {
 }
 
 // возможно стоит вызывать обновление списка из стора и там использовать транзакцию
-func (s service) UpdateList(metrics []models.Metrics) error {
+func (s service) UpdateList(ctx context.Context, metrics []models.Metrics) error {
 	for _, metric := range metrics {
-		err := s.Update(metric)
+		err := s.Update(ctx, metric)
 		if err != nil {
 			logger.Log.Debug("Error while updating metric ", err)
 		}

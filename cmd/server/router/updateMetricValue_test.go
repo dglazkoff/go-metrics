@@ -118,7 +118,7 @@ func TestUpdateMetricValue(t *testing.T) {
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			res, err := store.ReadMetrics()
+			res, err := store.ReadMetrics(context.Background())
 			require.NoError(t, err)
 			assert.Equal(t, tt.want.store, res)
 		})

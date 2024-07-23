@@ -12,7 +12,7 @@ func (a API) GetHTML() http.HandlerFunc {
 		// @tmvrus почему если писать тот же код как ниже, то не вставлялся заголовок??
 		w.Header().Set("Content-Type", "text/html")
 
-		metrics, _ := a.metricsService.GetAll()
+		metrics, _ := a.metricsService.GetAll(r.Context())
 
 		component := html.Metrics(metrics)
 		component.Render(context.Background(), w)

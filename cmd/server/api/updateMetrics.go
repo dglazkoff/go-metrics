@@ -16,7 +16,7 @@ func (a API) UpdateList() http.HandlerFunc {
 			return
 		}
 
-		err := a.metricsService.UpdateList(metrics)
+		err := a.metricsService.UpdateList(r.Context(), metrics)
 
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
