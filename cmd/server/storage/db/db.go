@@ -152,26 +152,28 @@ func (d *dbStorage) ReadMetric(ctx context.Context, id string) (models.Metrics, 
 }
 
 func (d *dbStorage) UpdateMetric(ctx context.Context, metric models.Metrics) error {
-	dbMetric, err := d.ReadMetric(ctx, metric.ID)
-
-	if err != nil {
-		_, err = dbExecute(func() (sql.Result, error) {
-			return d.db.ExecContext(ctx, "INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
-		})
-
-		return err
-	}
-
 	if metric.MType == constants.MetricTypeGauge {
-		_, err = dbExecute(func() (sql.Result, error) {
-			return d.db.ExecContext(ctx, "UPDATE metrics SET value = $1 WHERE id = $2", metric.Value, metric.ID)
+		_, err := dbExecute(func() (sql.Result, error) {
+			return d.db.ExecContext(
+				ctx,
+				"INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET value = $3",
+				metric.ID, metric.MType, metric.Value, metric.Delta,
+			)
 		})
 		return err
 	}
 
 	if metric.MType == constants.MetricTypeCounter {
-		fmt.Println(*dbMetric.Delta)
-		fmt.Println(*metric.Delta)
+		dbMetric, err := d.ReadMetric(ctx, metric.ID)
+
+		if err != nil {
+			_, err = dbExecute(func() (sql.Result, error) {
+				return d.db.ExecContext(ctx, "INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
+			})
+
+			return err
+		}
+
 		newDelta := *dbMetric.Delta + *metric.Delta
 		_, err = dbExecute(func() (sql.Result, error) {
 			return d.db.ExecContext(ctx, "UPDATE metrics SET delta = $1 WHERE id = $2", &newDelta, metric.ID)
@@ -185,9 +187,10 @@ func (d *dbStorage) UpdateMetric(ctx context.Context, metric models.Metrics) err
 func (d *dbStorage) SaveMetrics(ctx context.Context, metrics []models.Metrics) {
 	// можно сделать транзакцию для ускорения
 	for _, metric := range metrics {
-		_, err := dbExecute(func() (sql.Result, error) {
-			return d.db.ExecContext(ctx, "INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
-		})
+		err := d.UpdateMetric(ctx, metric)
+		//_, err := dbExecute(func() (sql.Result, error) {
+		//	return d.db.ExecContext(ctx, "INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
+		//})
 
 		if err != nil {
 			logger.Log.Debug("error while insert value ", err)
