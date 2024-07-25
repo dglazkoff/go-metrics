@@ -122,6 +122,7 @@ func (d *dbStorage) ReadMetrics(ctx context.Context) ([]models.Metrics, error) {
 
 		if err != nil {
 			logger.Log.Debug("error while scan metric ", err)
+			continue
 		}
 
 		metrics = append(metrics, metric)
