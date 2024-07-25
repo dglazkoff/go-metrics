@@ -35,7 +35,6 @@ func sendRequest(body interface{}, retryNumber int) {
 	if err != nil {
 		logger.Log.Debug("Error on request: ", err)
 
-		// @tmvrus Как нам перехватить ошибку, что именно проблема с соединением?
 		var urlErr *url.Error
 		if errors.As(err, &urlErr) {
 			if retryNumber == 3 {

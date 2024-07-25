@@ -17,7 +17,8 @@ func Run(cfg *config.Config) error {
 	pgDB, err := sql.Open("pgx", cfg.DatabaseDSN)
 
 	if err != nil {
-		logger.Log.Debug("Error on starting db", "err", err)
+		logger.Log.Debug("Error on open db", "err", err)
+		panic(err)
 	}
 	defer pgDB.Close()
 
@@ -28,6 +29,7 @@ func Run(cfg *config.Config) error {
 		err = db.Bootstrap(dbStore)
 
 		if err != nil {
+			logger.Log.Debug("Error on bootstrap db ", err)
 			panic(err)
 		}
 
