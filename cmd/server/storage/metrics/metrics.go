@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
@@ -10,19 +11,19 @@ type storage struct {
 	metrics []models.Metrics
 }
 
-func New(metrics []models.Metrics) storage {
-	storMetrics := append([]models.Metrics{}, metrics...)
+func New(metrics []models.Metrics) *storage {
+	storeMetrics := append([]models.Metrics{}, metrics...)
 
-	return storage{
-		metrics: storMetrics,
+	return &storage{
+		metrics: storeMetrics,
 	}
 }
 
-func (s *storage) ReadMetrics() []models.Metrics {
-	return s.metrics
+func (s *storage) ReadMetrics(_ context.Context) ([]models.Metrics, error) {
+	return s.metrics, nil
 }
 
-func (s *storage) ReadMetric(name string) (models.Metrics, error) {
+func (s *storage) ReadMetric(_ context.Context, name string) (models.Metrics, error) {
 	for _, metric := range s.metrics {
 		if metric.ID == name {
 			return metric, nil
@@ -32,10 +33,11 @@ func (s *storage) ReadMetric(name string) (models.Metrics, error) {
 	return models.Metrics{}, fmt.Errorf("metric not found by name %s", name)
 }
 
-func (s *storage) UpdateMetric(metric models.Metrics) error {
+func (s *storage) UpdateMetric(_ context.Context, metric models.Metrics) error {
 	for i, m := range s.metrics {
 		if m.ID == metric.ID {
 			if metric.MType == constants.MetricTypeGauge {
+
 				s.metrics[i] = metric
 				return nil
 			}
@@ -53,6 +55,11 @@ func (s *storage) UpdateMetric(metric models.Metrics) error {
 	return nil
 }
 
-func (s *storage) SaveMetrics(metrics []models.Metrics) {
+func (s *storage) SaveMetrics(_ context.Context, metrics []models.Metrics) error {
 	s.metrics = append(s.metrics, metrics...)
+	return nil
+}
+
+func (s *storage) PingDB(_ context.Context) error {
+	return nil
 }

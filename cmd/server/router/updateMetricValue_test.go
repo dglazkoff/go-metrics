@@ -2,6 +2,7 @@ package router
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
@@ -15,6 +16,12 @@ import (
 	"net/http/httptest"
 	"testing"
 )
+
+type dbMock struct{}
+
+func (db dbMock) PingContext(ctx context.Context) error {
+	return nil
+}
 
 // покрыл не все кейсы так как мало времени и все эти кейсы должны проверяться инкрементными тестами
 func TestUpdateMetricValue(t *testing.T) {
@@ -93,8 +100,8 @@ func TestUpdateMetricValue(t *testing.T) {
 			require.NoError(t, err)
 
 			store := metrics.New(tt.store)
-			fileStore := file.New(&store, &cfg)
-			ts := httptest.NewServer(Router(&store, &fileStore, &cfg))
+			fileStore := file.New(store, &cfg)
+			ts := httptest.NewServer(Router(store, &fileStore, &cfg))
 			defer ts.Close()
 
 			var b bytes.Buffer
@@ -111,7 +118,9 @@ func TestUpdateMetricValue(t *testing.T) {
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.want.store, store.ReadMetrics())
+			res, err := store.ReadMetrics(context.Background())
+			require.NoError(t, err)
+			assert.Equal(t, tt.want.store, res)
 		})
 	}
 }

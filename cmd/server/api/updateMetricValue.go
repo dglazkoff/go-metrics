@@ -42,9 +42,10 @@ func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 			model = models.Metrics{ID: metricName, MType: metricType, Delta: &intValue}
 		}
 
-		err := a.metricsService.Update(model)
+		err := a.metricsService.Update(r.Context(), model)
 
 		if err != nil {
+			logger.Log.Debug("Error while update metric: ", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -62,9 +63,10 @@ func (a API) UpdateMetricValueInBody() http.HandlerFunc {
 			return
 		}
 
-		err := a.metricsService.Update(metric)
+		err := a.metricsService.Update(r.Context(), metric)
 
 		if err != nil {
+			logger.Log.Debug("Error while update metric: ", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
