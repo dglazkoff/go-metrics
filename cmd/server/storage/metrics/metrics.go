@@ -55,8 +55,9 @@ func (s *storage) UpdateMetric(_ context.Context, metric models.Metrics) error {
 	return nil
 }
 
-func (s *storage) SaveMetrics(_ context.Context, metrics []models.Metrics) {
+func (s *storage) SaveMetrics(_ context.Context, metrics []models.Metrics) error {
 	s.metrics = append(s.metrics, metrics...)
+	return nil
 }
 
 func (s *storage) PingDB(_ context.Context) error {

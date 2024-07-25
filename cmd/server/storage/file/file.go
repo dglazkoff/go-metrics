@@ -14,7 +14,7 @@ import (
 )
 
 type metricStorage interface {
-	SaveMetrics(ctx context.Context, metrics []models.Metrics)
+	SaveMetrics(ctx context.Context, metrics []models.Metrics) error
 	ReadMetrics(ctx context.Context) ([]models.Metrics, error)
 }
 
@@ -75,7 +75,11 @@ func (s fileStorage) ReadMetrics() {
 		return
 	}
 
-	s.storage.SaveMetrics(ctx, metrics)
+	err = s.storage.SaveMetrics(ctx, metrics)
+
+	if err != nil {
+		logger.Log.Debug("Error while save metrics: ", err)
+	}
 }
 
 func (s fileStorage) WriteMetrics(isLoop bool) {

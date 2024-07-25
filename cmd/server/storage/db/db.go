@@ -11,6 +11,7 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"strings"
 	"time"
 )
 
@@ -184,18 +185,23 @@ func (d *dbStorage) UpdateMetric(ctx context.Context, metric models.Metrics) err
 	return fmt.Errorf("unknown metric type %s", metric.MType)
 }
 
-func (d *dbStorage) SaveMetrics(ctx context.Context, metrics []models.Metrics) {
+func (d *dbStorage) SaveMetrics(ctx context.Context, metrics []models.Metrics) error {
+	var notSavedMetricsIds []string
 	// можно сделать транзакцию для ускорения
 	for _, metric := range metrics {
 		err := d.UpdateMetric(ctx, metric)
-		//_, err := dbExecute(func() (sql.Result, error) {
-		//	return d.db.ExecContext(ctx, "INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
-		//})
 
 		if err != nil {
+			notSavedMetricsIds = append(notSavedMetricsIds, metric.ID)
 			logger.Log.Debug("error while insert value ", err)
 		}
 	}
+
+	if len(notSavedMetricsIds) > 0 {
+		return fmt.Errorf("metrics was not saved: %s", strings.Join(notSavedMetricsIds, ", "))
+	}
+
+	return nil
 }
 
 func (d *dbStorage) PingDB(ctx context.Context) error {
