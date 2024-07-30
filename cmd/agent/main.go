@@ -12,6 +12,8 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 	"math/rand"
 	"net/url"
 	"reflect"
@@ -22,7 +24,10 @@ import (
 
 type GaugeMetrics struct {
 	runtime.MemStats
-	RandomValue float64
+	RandomValue     float64
+	TotalMemory     float64
+	FreeMemory      float64
+	CPUutilization1 float64
 }
 
 type CounterMetrics struct {
@@ -101,7 +106,7 @@ func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) 
 
 	for i := 0; i < cfg.rateLimit; i++ {
 		go func() {
-			for _ = range workersChan {
+			for range workersChan {
 				updateMetrics(gm, cm, cfg)
 			}
 			wg.Done()
@@ -166,6 +171,23 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		time.Sleep(writeMetricsInterval)
 
 		var memStats runtime.MemStats
+		v, err := mem.VirtualMemory()
+
+		if err != nil {
+			logger.Log.Debug("Error while get memory stats: ", err)
+		} else {
+			gm.TotalMemory = float64(v.Total)
+			gm.FreeMemory = float64(v.Free)
+		}
+
+		c, err := cpu.Counts(false)
+
+		if err != nil {
+			logger.Log.Debug("Error while get cpu counts: ", err)
+		} else {
+			gm.CPUutilization1 = float64(c)
+		}
+
 		runtime.ReadMemStats(&memStats)
 		gm.MemStats = memStats
 		gm.RandomValue = rand.Float64()
