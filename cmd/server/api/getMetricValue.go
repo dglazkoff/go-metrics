@@ -45,14 +45,6 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 			fmt.Fprintf(w, "%g", *value.Value)
 		}
 
-		// почему тут заголовок не устанавливается ?
-		// w.Header().Set("Content-Type", "text/plain")
-
-		// If WriteHeader is not called explicitly, the first call to Write
-		// will trigger an implicit WriteHeader(http.StatusOK).
-		// w.Header().Set("HashSHA256", "hash")
-		// даже статус не выводится нужный
-
 		// по сути если есть Write то WriteHeader бесполезно вызывать
 		// w.WriteHeader(http.StatusOK)
 	}

@@ -12,16 +12,22 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 	"math/rand"
 	"net/url"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 )
 
 type GaugeMetrics struct {
 	runtime.MemStats
-	RandomValue float64
+	RandomValue     float64
+	TotalMemory     float64
+	FreeMemory      float64
+	CPUutilization1 float64
 }
 
 type CounterMetrics struct {
@@ -84,58 +90,78 @@ func sendBody(body []byte, cfg *Config) {
 	sendRequest(buf, hash, 0)
 }
 
-func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
-	writeMetricsInterval := time.Duration(cfg.reportInterval) * time.Second
+func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+	workersChan := make(chan struct{}, cfg.rateLimit)
+	var wg sync.WaitGroup
 
-	for {
-		time.Sleep(writeMetricsInterval)
+	wg.Add(cfg.rateLimit)
+	go func() {
+		writeMetricsInterval := time.Duration(cfg.reportInterval) * time.Second
+		defer close(workersChan)
+		for {
+			time.Sleep(writeMetricsInterval)
+			workersChan <- struct{}{}
+		}
+	}()
 
-		var metrics []models.Metrics
-		valuesGm := reflect.ValueOf(*gm)
-		typesGm := valuesGm.Type()
-		for i := 0; i < valuesGm.NumField(); i++ {
-			if typesGm.Field(i).Name == "MemStats" {
-				continue
+	for i := 0; i < cfg.rateLimit; i++ {
+		go func() {
+			for range workersChan {
+				updateMetrics(gm, cm, cfg)
 			}
-			value := valuesGm.Field(i).Float()
-			metrics = append(metrics, models.Metrics{MType: constants.MetricTypeGauge, ID: typesGm.Field(i).Name, Value: &value})
-		}
-
-		valuesGmMemStats := reflect.ValueOf((*gm).MemStats)
-		typesGmMemStats := valuesGmMemStats.Type()
-
-		for i := 0; i < valuesGmMemStats.NumField(); i++ {
-			field := valuesGmMemStats.Field(i)
-			var value float64
-
-			switch field.Kind() {
-			case reflect.Float32, reflect.Float64:
-				value = field.Float()
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				value = float64(field.Uint())
-			default:
-				continue
-			}
-
-			metrics = append(metrics, models.Metrics{MType: constants.MetricTypeGauge, ID: typesGmMemStats.Field(i).Name, Value: &value})
-		}
-
-		valuesCm := reflect.ValueOf(*cm)
-		typesCm := valuesCm.Type()
-		for i := 0; i < valuesCm.NumField(); i++ {
-			delta := valuesCm.Field(i).Int()
-			metrics = append(metrics, models.Metrics{MType: constants.MetricTypeCounter, ID: typesCm.Field(i).Name, Delta: &delta})
-		}
-
-		body, err := json.Marshal(metrics)
-
-		if err != nil {
-			logger.Log.Debug("Error while marshal data: ", err)
-			return
-		}
-
-		sendBody(body, cfg)
+			wg.Done()
+		}()
 	}
+
+	wg.Wait()
+}
+
+func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+	var metrics []models.Metrics
+	valuesGm := reflect.ValueOf(*gm)
+	typesGm := valuesGm.Type()
+	for i := 0; i < valuesGm.NumField(); i++ {
+		if typesGm.Field(i).Name == "MemStats" {
+			continue
+		}
+		value := valuesGm.Field(i).Float()
+		metrics = append(metrics, models.Metrics{MType: constants.MetricTypeGauge, ID: typesGm.Field(i).Name, Value: &value})
+	}
+
+	valuesGmMemStats := reflect.ValueOf((*gm).MemStats)
+	typesGmMemStats := valuesGmMemStats.Type()
+
+	for i := 0; i < valuesGmMemStats.NumField(); i++ {
+		field := valuesGmMemStats.Field(i)
+		var value float64
+
+		switch field.Kind() {
+		case reflect.Float32, reflect.Float64:
+			value = field.Float()
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			value = float64(field.Uint())
+		default:
+			continue
+		}
+
+		metrics = append(metrics, models.Metrics{MType: constants.MetricTypeGauge, ID: typesGmMemStats.Field(i).Name, Value: &value})
+	}
+
+	valuesCm := reflect.ValueOf(*cm)
+	typesCm := valuesCm.Type()
+	for i := 0; i < valuesCm.NumField(); i++ {
+		delta := valuesCm.Field(i).Int()
+		metrics = append(metrics, models.Metrics{MType: constants.MetricTypeCounter, ID: typesCm.Field(i).Name, Delta: &delta})
+	}
+
+	body, err := json.Marshal(metrics)
+
+	if err != nil {
+		logger.Log.Debug("Error while marshal data: ", err)
+		return
+	}
+
+	sendBody(body, cfg)
 }
 
 func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
@@ -145,6 +171,23 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		time.Sleep(writeMetricsInterval)
 
 		var memStats runtime.MemStats
+		v, err := mem.VirtualMemory()
+
+		if err != nil {
+			logger.Log.Debug("Error while get memory stats: ", err)
+		} else {
+			gm.TotalMemory = float64(v.Total)
+			gm.FreeMemory = float64(v.Free)
+		}
+
+		c, err := cpu.Counts(false)
+
+		if err != nil {
+			logger.Log.Debug("Error while get cpu counts: ", err)
+		} else {
+			gm.CPUutilization1 = float64(c)
+		}
+
 		runtime.ReadMemStats(&memStats)
 		gm.MemStats = memStats
 		gm.RandomValue = rand.Float64()
@@ -168,5 +211,6 @@ func main() {
 	cm := CounterMetrics{}
 
 	go writeMetrics(&gm, &cm, &cfg)
-	updateMetrics(&gm, &cm, &cfg)
+
+	updateMetricsWorkerPool(&gm, &cm, &cfg)
 }

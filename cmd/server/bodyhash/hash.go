@@ -35,7 +35,6 @@ func (h *hashWriter) Header() http.Header {
 func (h *hashWriter) Write(p []byte) (int, error) {
 	logger.Log.Debug("Encode response body")
 	h.hash.Write(p)
-	// можно ли несколько Write вызывать?
 	h.w.Header().Set("HashSHA256", hex.EncodeToString(h.hash.Sum(nil)))
 	return h.w.Write(p)
 }
@@ -56,13 +55,11 @@ func (bodyHash *BodyHash) BodyHash(handler http.HandlerFunc) http.HandlerFunc {
 		}
 
 		requestHash := request.Header.Get("HashSHA256")
-		// считываем все
+
 		body, err := io.ReadAll(request.Body)
 		request.Body = io.NopCloser(bytes.NewBuffer(body))
 
-		//logger.Log.Debug(bodyHash.cfg.SecretKey)
 		logger.Log.Debug(requestHash)
-		//logger.Log.Debug(hex.EncodeToString(body))
 
 		if err != nil {
 			if err != io.EOF {

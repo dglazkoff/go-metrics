@@ -11,6 +11,7 @@ type Config struct {
 	pollInterval   int
 	reportInterval int
 	secretKey      string
+	rateLimit      int
 }
 
 /*
@@ -25,6 +26,7 @@ func parseConfig() Config {
 	flag.IntVar(&config.reportInterval, "r", 10, "частота отправки метрик на сервер")
 	flag.IntVar(&config.pollInterval, "p", 2, "частота опроса метрик из пакета runtime")
 	flag.StringVar(&config.secretKey, "k", "", "ключ для кодирования запроса")
+	flag.IntVar(&config.rateLimit, "l", 1, "количество одновременно исходящих запросов")
 	flag.Parse()
 
 	if runAddr := os.Getenv("ADDRESS"); runAddr != "" {
@@ -49,6 +51,14 @@ func parseConfig() Config {
 
 	if secretKey := os.Getenv("KEY"); secretKey != "" {
 		config.secretKey = secretKey
+	}
+
+	if rateLimit := os.Getenv("RATE_LIMIT"); rateLimit != "" {
+		value, err := strconv.Atoi(rateLimit)
+
+		if err == nil {
+			config.rateLimit = value
+		}
 	}
 
 	return config

@@ -15,7 +15,6 @@ type Config struct {
 	SecretKey       string
 }
 
-// "host=localhost user=postgres password=12345678 dbname=metrics sslmode=disable"
 func ParseConfig() Config {
 	cfg := Config{}
 
