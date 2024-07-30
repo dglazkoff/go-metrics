@@ -12,6 +12,7 @@ type Config struct {
 	FileStoragePath string
 	IsRestore       bool
 	DatabaseDSN     string
+	SecretKey       string
 }
 
 func ParseConfig() Config {
@@ -22,6 +23,7 @@ func ParseConfig() Config {
 	flag.IntVar(&cfg.StoreInterval, "i", 300, "interval to save metrics on disk")
 	flag.BoolVar(&cfg.IsRestore, "r", true, "is restore saved metrics data")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database dsn string")
+	flag.StringVar(&cfg.SecretKey, "k", "", "ключ для кодирования запроса")
 	flag.Parse()
 
 	if runAddr := os.Getenv("ADDRESS"); runAddr != "" {
@@ -50,6 +52,10 @@ func ParseConfig() Config {
 
 	if databaseDSN := os.Getenv("DATABASE_DSN"); databaseDSN != "" {
 		cfg.DatabaseDSN = databaseDSN
+	}
+
+	if secretKey := os.Getenv("KEY"); secretKey != "" {
+		cfg.SecretKey = secretKey
 	}
 
 	return cfg

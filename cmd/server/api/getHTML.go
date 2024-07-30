@@ -9,7 +9,6 @@ import (
 
 func (a API) GetHTML() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
 		// @tmvrus почему если писать тот же код как ниже, то не вставлялся заголовок??
 		w.Header().Set("Content-Type", "text/html")
 

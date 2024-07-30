@@ -33,16 +33,20 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 			fmt.Sprint делает преобразование "всего что угодно" в строку, и тут могут быть проблемы в постедствии, когда структура хранения усложнится
 			лучше всегда использовать явное преобразование, что бы читать кода всегда видел из какого типа в какой идет преобрзование, в данном случае подойдет fmt.Sprintf("%d", value) тут явным образом ожидается число
 		*/
+
+		w.Header().Set("Content-Type", "text/plain")
+		// Fprintf вызывает Write и после этого нельзя проставлять заголовок. даже вызвав WriteHeader
+
 		if value.Delta != nil {
 			fmt.Fprintf(w, "%d", *value.Delta)
 		}
-
+		//
 		if value.Value != nil {
 			fmt.Fprintf(w, "%g", *value.Value)
 		}
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
+		// по сути если есть Write то WriteHeader бесполезно вызывать
+		// w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -74,12 +78,12 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 			return
 		}
 
-		if err := enc.Encode(value); err != nil {
+		if err = enc.Encode(value); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		// w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		// w.WriteHeader(http.StatusOK)
 	}
 }
