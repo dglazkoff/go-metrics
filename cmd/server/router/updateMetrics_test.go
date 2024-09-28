@@ -3,15 +3,16 @@ package router
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
 	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func BenchmarkUpdateMetrics(b *testing.B) {

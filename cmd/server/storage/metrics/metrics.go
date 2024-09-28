@@ -3,7 +3,8 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"github.com/dglazkoff/go-metrics/internal/const"
+
+	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 

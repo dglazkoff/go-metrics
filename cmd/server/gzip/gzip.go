@@ -2,10 +2,11 @@ package gzip
 
 import (
 	"compress/gzip"
-	"github.com/dglazkoff/go-metrics/internal/logger"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/dglazkoff/go-metrics/internal/logger"
 )
 
 //type compressWriter struct {

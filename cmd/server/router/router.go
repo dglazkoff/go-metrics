@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http/pprof"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/api"
 	"github.com/dglazkoff/go-metrics/cmd/server/bodyhash"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
@@ -9,7 +11,6 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
-	"net/http/pprof"
 )
 
 func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Config) chi.Router {
