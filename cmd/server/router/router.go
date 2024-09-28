@@ -9,6 +9,7 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
+	"net/http/pprof"
 )
 
 func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Config) chi.Router {
@@ -29,6 +30,11 @@ func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Co
 	r.Get("/", logger.Log.Request(bh.BodyHash(gzip.GzipHandle(newAPI.GetHTML(), true))))
 
 	r.Get("/ping", logger.Log.Request(newAPI.PingDB()))
+	r.Get("/debug/pprof/", pprof.Index)
+	r.Get("/debug/pprof/{action}", pprof.Index)
+	r.Get("/debug/pprof/profile", pprof.Profile)
+	r.Get("/debug/pprof/symbol", pprof.Symbol)
+	r.Get("/debug/pprof/trace", pprof.Trace)
 
 	return r
 }

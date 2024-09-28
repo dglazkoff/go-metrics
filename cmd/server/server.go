@@ -11,6 +11,7 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"net/http"
+	_ "net/http/pprof"
 )
 
 func Run(cfg *config.Config) error {

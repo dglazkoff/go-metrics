@@ -124,3 +124,34 @@ func TestUpdateMetricValue(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkUpdateMetricValue(b *testing.B) {
+	cfg := config.Config{
+		RunAddr:         ":8080",
+		FileStoragePath: "/tmp/metrics-db.json",
+		StoreInterval:   300,
+		IsRestore:       true,
+		DatabaseDSN:     "",
+		SecretKey:       "",
+	}
+	var deltaValue int64 = 1
+
+	logger.Initialize()
+
+	store := metrics.New([]models.Metrics{})
+	fileStore := file.New(store, &cfg)
+	ts := httptest.NewServer(Router(store, &fileStore, &cfg))
+	defer ts.Close()
+
+	var buf bytes.Buffer
+	json.NewEncoder(&buf).Encode(models.Metrics{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue})
+
+	request, _ := http.NewRequest(http.MethodPost, ts.URL+"/update/", &buf)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		result, _ := ts.Client().Do(request)
+		result.Body.Close()
+	}
+}
