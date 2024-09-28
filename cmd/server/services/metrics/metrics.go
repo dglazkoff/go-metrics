@@ -3,9 +3,10 @@ package metrics
 import (
 	"context"
 	"errors"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
-	"github.com/dglazkoff/go-metrics/internal/const"
+	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )

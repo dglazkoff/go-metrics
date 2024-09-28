@@ -2,9 +2,10 @@ package api
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/html"
 	"github.com/dglazkoff/go-metrics/internal/logger"
-	"net/http"
 )
 
 func (a API) GetHTML() http.HandlerFunc {

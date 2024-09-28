@@ -3,11 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dglazkoff/go-metrics/internal/const"
+	"net/http"
+
+	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/go-chi/chi/v5"
-	"net/http"
 )
 
 func (a API) GetMetricValueInRequest() http.HandlerFunc {

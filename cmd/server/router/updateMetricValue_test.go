@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
-	"github.com/dglazkoff/go-metrics/internal/const"
+	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 type dbMock struct{}
@@ -122,5 +123,36 @@ func TestUpdateMetricValue(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.want.store, res)
 		})
+	}
+}
+
+func BenchmarkUpdateMetricValue(b *testing.B) {
+	cfg := config.Config{
+		RunAddr:         ":8080",
+		FileStoragePath: "/tmp/metrics-db.json",
+		StoreInterval:   300,
+		IsRestore:       true,
+		DatabaseDSN:     "",
+		SecretKey:       "",
+	}
+	var deltaValue int64 = 1
+
+	logger.Initialize()
+
+	store := metrics.New([]models.Metrics{})
+	fileStore := file.New(store, &cfg)
+	ts := httptest.NewServer(Router(store, &fileStore, &cfg))
+	defer ts.Close()
+
+	var buf bytes.Buffer
+	json.NewEncoder(&buf).Encode(models.Metrics{ID: "value", MType: constants.MetricTypeCounter, Delta: &deltaValue})
+
+	request, _ := http.NewRequest(http.MethodPost, ts.URL+"/update/", &buf)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		result, _ := ts.Client().Do(request)
+		result.Body.Close()
 	}
 }
