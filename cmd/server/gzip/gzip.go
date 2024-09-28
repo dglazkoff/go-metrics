@@ -64,7 +64,6 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 		// @tmvrus почему-то здесь не выставляется заголовок хотя статус 200
 		c.w.Header().Set("Content-Encoding", "gzip")
 	}
-
 	c.w.WriteHeader(statusCode)
 }
 
@@ -126,6 +125,7 @@ func GzipHandle(next http.HandlerFunc, isHTML bool) http.HandlerFunc {
 			r, err := gzip.NewReader(request.Body)
 
 			if err != nil {
+				logger.Log.Debug("Error while reading the body: ", err)
 				writer.WriteHeader(http.StatusInternalServerError)
 				return
 			}
