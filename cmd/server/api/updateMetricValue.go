@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// UpdateMetricValueInRequest - хендлер обновления метрики, передаваемой в URLParams
 func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
@@ -55,6 +56,7 @@ func (a API) UpdateMetricValueInRequest() http.HandlerFunc {
 	}
 }
 
+// UpdateMetricValueInBody - хендлер обновления метрики, передаваемой в body
 func (a API) UpdateMetricValueInBody() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric models.Metrics

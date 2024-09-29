@@ -8,6 +8,7 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
+// UpdateList - хендлер для обновления списка метрик передаваемых в body
 func (a API) UpdateList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metrics []models.Metrics

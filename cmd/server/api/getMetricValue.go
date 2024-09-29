@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// GetMetricValueInRequest - хендлер для получения метрики по данным в URLParams
 func (a API) GetMetricValueInRequest() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metricType := chi.URLParam(r, "metricType")
@@ -28,8 +29,6 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 			return
 		}
 
-		// не нравится что логика работы со значениями метрики в хендлере
-
 		/*
 			fmt.Sprint делает преобразование "всего что угодно" в строку, и тут могут быть проблемы в постедствии, когда структура хранения усложнится
 			лучше всегда использовать явное преобразование, что бы читать кода всегда видел из какого типа в какой идет преобрзование, в данном случае подойдет fmt.Sprintf("%d", value) тут явным образом ожидается число
@@ -41,16 +40,14 @@ func (a API) GetMetricValueInRequest() http.HandlerFunc {
 		if value.Delta != nil {
 			fmt.Fprintf(w, "%d", *value.Delta)
 		}
-		//
+
 		if value.Value != nil {
 			fmt.Fprintf(w, "%g", *value.Value)
 		}
-
-		// по сути если есть Write то WriteHeader бесполезно вызывать
-		// w.WriteHeader(http.StatusOK)
 	}
 }
 
+// GetMetricValueInBody - хендлер для получения метрики по данным в body
 func (a API) GetMetricValueInBody() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var metric models.Metrics
@@ -65,9 +62,6 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 			return
 		}
 
-		// @tmvrus почему тут выставление заголовка заработало, а ниже не работало?
-
-		// @tmvrus: на сколько я помню все хедеры должны быть записаны до вызова Write
 		w.Header().Set("Content-Type", "application/json")
 
 		enc := json.NewEncoder(w)
@@ -82,9 +76,7 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 		if err = enc.Encode(value); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-		}
 
-		// w.Header().Set("Content-Type", "application/json")
-		// w.WriteHeader(http.StatusOK)
+		}
 	}
 }

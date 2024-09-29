@@ -1,3 +1,4 @@
+// bodyhash - декоратор над хендлером, для проверки целостности body по хэшу
 package bodyhash
 
 import (

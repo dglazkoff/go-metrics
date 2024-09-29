@@ -1,3 +1,4 @@
+// слой service
 package metrics
 
 import (
@@ -28,18 +29,22 @@ type service struct {
 	cfg         *config.Config
 }
 
+// New - метод для создания сервиса
 func New(s storage.MetricsStorage, f fileStorage, cfg *config.Config) service {
 	return service{storage: s, cfg: cfg, fileStorage: f}
 }
 
+// Get - метод для получения метрики по имени
 func (s service) Get(ctx context.Context, name string) (models.Metrics, error) {
 	return s.storage.ReadMetric(ctx, name)
 }
 
+// GetAll - метод для получения всех метрик
 func (s service) GetAll(ctx context.Context) ([]models.Metrics, error) {
 	return s.storage.ReadMetrics(ctx)
 }
 
+// Update - метод для обновления метрики
 func (s service) Update(ctx context.Context, metric models.Metrics) error {
 	if metric.MType != constants.MetricTypeGauge && metric.MType != constants.MetricTypeCounter {
 		logger.Log.Debug("Wrong type")
@@ -69,7 +74,7 @@ func (s service) Update(ctx context.Context, metric models.Metrics) error {
 	return err
 }
 
-// возможно стоит вызывать обновление списка из стора и там использовать транзакцию
+// UpdateList - метод для обновления списка метрик
 func (s service) UpdateList(ctx context.Context, metrics []models.Metrics) error {
 	for _, metric := range metrics {
 		err := s.Update(ctx, metric)
@@ -82,6 +87,7 @@ func (s service) UpdateList(ctx context.Context, metrics []models.Metrics) error
 	return nil
 }
 
+// PingDB - метод для проверки соединения с БД
 func (s service) PingDB(ctx context.Context) error {
 	return s.storage.PingDB(ctx)
 }
