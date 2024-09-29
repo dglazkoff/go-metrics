@@ -1,5 +1,5 @@
 // слой service
-package metrics
+package service
 
 import (
 	"context"

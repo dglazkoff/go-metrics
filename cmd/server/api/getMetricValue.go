@@ -76,7 +76,6 @@ func (a API) GetMetricValueInBody() http.HandlerFunc {
 		if err = enc.Encode(value); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-
 		}
 	}
 }

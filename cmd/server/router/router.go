@@ -7,7 +7,7 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/bodyhash"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/gzip"
-	"github.com/dglazkoff/go-metrics/cmd/server/services/metrics"
+	"github.com/dglazkoff/go-metrics/cmd/server/services/service"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -16,7 +16,7 @@ import (
 func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Config) chi.Router {
 	r := chi.NewRouter()
 
-	metricService := metrics.New(store, fs, cfg)
+	metricService := service.New(store, fs, cfg)
 	newAPI := api.NewAPI(metricService, cfg)
 	bh := bodyhash.Initialize(cfg)
 
