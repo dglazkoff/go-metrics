@@ -2,6 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/router"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
@@ -10,7 +13,6 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
-	"net/http"
 )
 
 func Run(cfg *config.Config) error {

@@ -1,8 +1,9 @@
 package api
 
 import (
-	"github.com/dglazkoff/go-metrics/internal/logger"
 	"net/http"
+
+	"github.com/dglazkoff/go-metrics/internal/logger"
 )
 
 func (a API) PingDB() http.HandlerFunc {
