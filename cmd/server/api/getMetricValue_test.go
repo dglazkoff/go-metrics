@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"testing"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/cmd/server/services/service"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
@@ -14,11 +20,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strconv"
-	"testing"
 )
 
 func TestAPI_GetMetricValue(t *testing.T) {
@@ -165,11 +166,11 @@ func TestAPI_GetMetricValue(t *testing.T) {
 			var resultMetric models.Metrics
 
 			if result.Header.Get("Content-Type") == "text/plain" {
-				responseData, err := io.ReadAll(result.Body)
-				assert.NoError(t, err)
+				responseData, responseErr := io.ReadAll(result.Body)
+				assert.NoError(t, responseErr)
 
-				responseInt, err := strconv.Atoi(string(responseData))
-				assert.NoError(t, err)
+				responseInt, responseErr := strconv.Atoi(string(responseData))
+				assert.NoError(t, responseErr)
 
 				assert.Equal(t, int64(responseInt), *tt.want.metric.Delta)
 				return

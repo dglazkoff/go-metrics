@@ -31,10 +31,6 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		// @tmvrus почему-то здесь не выставляется заголовок хотя статус 200
-		c.w.Header().Set("Content-Encoding", "gzip")
-	}
 	c.w.WriteHeader(statusCode)
 }
 
@@ -45,18 +41,6 @@ func (c *compressWriter) Close() error {
 type compressReader struct {
 	r  io.ReadCloser
 	zr *gzip.Reader
-}
-
-func newCompressReader(r io.ReadCloser) (*compressReader, error) {
-	zr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return &compressReader{
-		r:  r,
-		zr: zr,
-	}, nil
 }
 
 func (c compressReader) Read(p []byte) (n int, err error) {
@@ -99,6 +83,7 @@ func GzipHandle(next http.HandlerFunc, isHTML bool) http.HandlerFunc {
 			}
 
 			request.Body = &compressReader{r: request.Body, zr: r}
+
 			defer r.Close()
 		}
 
