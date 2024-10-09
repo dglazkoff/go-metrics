@@ -8,18 +8,19 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/dglazkoff/go-metrics/internal/const"
-	"github.com/dglazkoff/go-metrics/internal/logger"
-	"github.com/dglazkoff/go-metrics/internal/models"
-	"github.com/go-resty/resty/v2"
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/mem"
 	"math/rand"
 	"net/url"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
+
+	constants "github.com/dglazkoff/go-metrics/internal/const"
+	"github.com/dglazkoff/go-metrics/internal/logger"
+	"github.com/dglazkoff/go-metrics/internal/models"
+	"github.com/go-resty/resty/v2"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 type GaugeMetrics struct {

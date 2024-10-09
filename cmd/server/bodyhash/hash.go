@@ -1,3 +1,4 @@
+// bodyhash - декоратор над хендлером, для проверки целостности body по хэшу
 package bodyhash
 
 import (
@@ -5,11 +6,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/dglazkoff/go-metrics/cmd/server/config"
-	"github.com/dglazkoff/go-metrics/internal/logger"
 	"hash"
 	"io"
 	"net/http"
+
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
+	"github.com/dglazkoff/go-metrics/internal/logger"
 )
 
 type BodyHash struct {
