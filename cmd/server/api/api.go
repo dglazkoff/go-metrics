@@ -1,7 +1,9 @@
+// api - пакет, содержащий хендлеры для обработки запросов
 package api
 
 import (
 	"context"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
