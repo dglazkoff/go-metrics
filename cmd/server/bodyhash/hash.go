@@ -6,7 +6,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"hash"
 	"io"
 	"net/http"
 
@@ -19,14 +18,14 @@ type BodyHash struct {
 }
 
 type hashWriter struct {
-	w    http.ResponseWriter
-	hash hash.Hash
+	w   http.ResponseWriter
+	cfg *config.Config
 }
 
-func newHashWriter(w http.ResponseWriter) *hashWriter {
+func newHashWriter(w http.ResponseWriter, cfg *config.Config) *hashWriter {
 	return &hashWriter{
-		w:    w,
-		hash: sha256.New(),
+		w:   w,
+		cfg: cfg,
 	}
 }
 
@@ -36,8 +35,11 @@ func (h *hashWriter) Header() http.Header {
 
 func (h *hashWriter) Write(p []byte) (int, error) {
 	logger.Log.Debug("Encode response body")
-	h.hash.Write(p)
-	h.w.Header().Set("HashSHA256", hex.EncodeToString(h.hash.Sum(nil)))
+	hash := hmac.New(sha256.New, []byte(h.cfg.SecretKey))
+	hash.Write(p)
+	hSum := hash.Sum(nil)
+
+	h.w.Header().Set("HashSHA256", hex.EncodeToString(hSum))
 	return h.w.Write(p)
 }
 
@@ -83,7 +85,7 @@ func (bodyHash *BodyHash) BodyHash(handler http.HandlerFunc) http.HandlerFunc {
 			logger.Log.Debug("Right hash")
 		}
 
-		hw := newHashWriter(writer)
+		hw := newHashWriter(writer, bodyHash.cfg)
 
 		handler.ServeHTTP(hw, request)
 	}
