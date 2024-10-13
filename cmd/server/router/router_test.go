@@ -2,10 +2,11 @@ package router
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/dglazkoff/go-metrics/cmd/server/api"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/internal/models"
-	"net/http"
 )
 
 type metricService struct{}
