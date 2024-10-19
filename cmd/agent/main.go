@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 	"net/url"
 	"reflect"
@@ -21,6 +22,12 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
+)
+
+var (
+	BuildVersion = "N/A"
+	BuildDate    = "N/A"
+	BuildCommit  = "N/A"
 )
 
 type GaugeMetrics struct {
@@ -197,6 +204,7 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 	}
 }
 
+// go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
 func main() {
 	cfg := parseConfig()
 
@@ -205,6 +213,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Printf("Build version: %s\n", BuildVersion)
+	fmt.Printf("Build date: %s\n", BuildDate)
+	fmt.Printf("Build commit: %s\n", BuildCommit)
 
 	client.SetBaseURL("http://" + cfg.runAddr)
 
