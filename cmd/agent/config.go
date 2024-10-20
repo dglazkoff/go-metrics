@@ -12,6 +12,7 @@ type Config struct {
 	reportInterval int
 	secretKey      string
 	rateLimit      int
+	cryptoKey      string
 }
 
 /*
@@ -26,6 +27,7 @@ func parseConfig() Config {
 	flag.IntVar(&config.reportInterval, "r", 10, "частота отправки метрик на сервер")
 	flag.IntVar(&config.pollInterval, "p", 2, "частота опроса метрик из пакета runtime")
 	flag.StringVar(&config.secretKey, "k", "", "ключ для кодирования запроса")
+	flag.StringVar(&config.cryptoKey, "crypto-key", "", "путь до файла с публичным ключом")
 	flag.IntVar(&config.rateLimit, "l", 1, "количество одновременно исходящих запросов")
 	flag.Parse()
 
@@ -59,6 +61,10 @@ func parseConfig() Config {
 		if err == nil {
 			config.rateLimit = value
 		}
+	}
+
+	if cryptoKey := os.Getenv("CRYPTO_KEY"); cryptoKey != "" {
+		config.cryptoKey = cryptoKey
 	}
 
 	return config
