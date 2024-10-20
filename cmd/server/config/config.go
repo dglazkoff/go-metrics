@@ -13,6 +13,7 @@ type Config struct {
 	IsRestore       bool
 	DatabaseDSN     string
 	SecretKey       string
+	CryptoKey       string
 }
 
 func ParseConfig() Config {
@@ -24,6 +25,7 @@ func ParseConfig() Config {
 	flag.BoolVar(&cfg.IsRestore, "r", true, "is restore saved metrics data")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database dsn string")
 	flag.StringVar(&cfg.SecretKey, "k", "", "ключ для кодирования запроса")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "путь до файла с приватным ключом")
 	flag.Parse()
 
 	if runAddr := os.Getenv("ADDRESS"); runAddr != "" {
@@ -56,6 +58,10 @@ func ParseConfig() Config {
 
 	if secretKey := os.Getenv("KEY"); secretKey != "" {
 		cfg.SecretKey = secretKey
+	}
+
+	if cryptoKey := os.Getenv("CRYPTO_KEY"); cryptoKey != "" {
+		cfg.CryptoKey = cryptoKey
 	}
 
 	return cfg

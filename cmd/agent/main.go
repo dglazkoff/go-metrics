@@ -4,13 +4,18 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
-	"math/rand"
+	mathRand "math/rand"
 	"net/url"
+	"os"
 	"reflect"
 	"runtime"
 	"sync"
@@ -169,7 +174,42 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		return
 	}
 
-	sendBody(body, cfg)
+	publicKeyPEM, err := os.ReadFile(cfg.cryptoKey)
+	if err != nil {
+		logger.Log.Debug("Error while read public key: ", err)
+		sendBody(body, cfg)
+		return
+	}
+
+	publicKeyBlock, _ := pem.Decode(publicKeyPEM)
+	publicKey, err := x509.ParsePKCS1PublicKey(publicKeyBlock.Bytes)
+	if err != nil {
+		logger.Log.Debug("Error while parse public key: ", err)
+		sendBody(body, cfg)
+		return
+	}
+
+	var encryptedBuffer bytes.Buffer
+	segmentSize := publicKey.Size()
+	for i := 0; i < len(body); i += segmentSize {
+		j := i + segmentSize
+		if j > len(body) {
+			j = len(body)
+		}
+		segmentToEncrypt := body[i:j]
+
+		encryptedSegment, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, segmentToEncrypt)
+
+		if err != nil {
+			logger.Log.Debug("Error while encrypt data: ", err)
+			sendBody(body, cfg)
+			return
+		}
+
+		encryptedBuffer.Write(encryptedSegment)
+	}
+
+	sendBody(encryptedBuffer.Bytes(), cfg)
 }
 
 func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
@@ -198,7 +238,7 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 
 		runtime.ReadMemStats(&memStats)
 		gm.MemStats = memStats
-		gm.RandomValue = rand.Float64()
+		gm.RandomValue = mathRand.Float64()
 
 		cm.PollCount += 1
 	}

@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"net/http"
+	"testing"
 
 	"github.com/dglazkoff/go-metrics/cmd/server/api"
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
@@ -31,7 +32,7 @@ func (m *metricService) PingDB(ctx context.Context) error {
 	return nil
 }
 
-func Example() {
+func TestRouter(t *testing.T) {
 	cfg := &config.Config{}
 	ms := &metricService{}
 	newAPI := api.NewAPI(ms, cfg)
