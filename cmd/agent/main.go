@@ -93,9 +93,9 @@ func sendBody(body []byte, cfg *Config) {
 	}
 
 	var hash []byte
-	if cfg.secretKey != "" {
+	if cfg.SecretKey != "" {
 		logger.Log.Debug("Encoding body")
-		h := hmac.New(sha256.New, []byte(cfg.secretKey))
+		h := hmac.New(sha256.New, []byte(cfg.SecretKey))
 		h.Write(buf.Bytes())
 		hash = h.Sum(nil)
 	}
@@ -104,12 +104,12 @@ func sendBody(body []byte, cfg *Config) {
 }
 
 func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
-	workersChan := make(chan struct{}, cfg.rateLimit)
+	workersChan := make(chan struct{}, cfg.RateLimit)
 	var wg sync.WaitGroup
 
-	wg.Add(cfg.rateLimit)
+	wg.Add(cfg.RateLimit)
 	go func() {
-		writeMetricsInterval := time.Duration(cfg.reportInterval) * time.Second
+		writeMetricsInterval := time.Duration(cfg.ReportInterval) * time.Second
 		defer close(workersChan)
 		for {
 			time.Sleep(writeMetricsInterval)
@@ -117,7 +117,7 @@ func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) 
 		}
 	}()
 
-	for i := 0; i < cfg.rateLimit; i++ {
+	for i := 0; i < cfg.RateLimit; i++ {
 		go func() {
 			for range workersChan {
 				updateMetrics(gm, cm, cfg)
@@ -174,7 +174,7 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		return
 	}
 
-	publicKeyPEM, err := os.ReadFile(cfg.cryptoKey)
+	publicKeyPEM, err := os.ReadFile(cfg.CryptoKey)
 	if err != nil {
 		logger.Log.Debug("Error while read public key: ", err)
 		sendBody(body, cfg)
@@ -190,7 +190,7 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 	}
 
 	var encryptedBuffer bytes.Buffer
-	segmentSize := publicKey.Size()
+	segmentSize := 256
 	for i := 0; i < len(body); i += segmentSize {
 		j := i + segmentSize
 		if j > len(body) {
@@ -213,7 +213,7 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 }
 
 func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
-	writeMetricsInterval := time.Duration(cfg.pollInterval) * time.Second
+	writeMetricsInterval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
 		time.Sleep(writeMetricsInterval)
@@ -246,19 +246,19 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 
 // go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
 func main() {
-	cfg := parseConfig()
-
 	err := logger.Initialize()
 
 	if err != nil {
 		panic(err)
 	}
 
+	cfg := parseConfig()
+
 	fmt.Printf("Build version: %s\n", BuildVersion)
 	fmt.Printf("Build date: %s\n", BuildDate)
 	fmt.Printf("Build commit: %s\n", BuildCommit)
 
-	client.SetBaseURL("http://" + cfg.runAddr)
+	client.SetBaseURL("http://" + cfg.RunAddr)
 
 	gm := GaugeMetrics{}
 	cm := CounterMetrics{}
