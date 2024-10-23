@@ -16,9 +16,11 @@ import (
 	mathRand "math/rand"
 	"net/url"
 	"os"
+	"os/signal"
 	"reflect"
 	"runtime"
 	"sync"
+	"syscall"
 	"time"
 
 	constants "github.com/dglazkoff/go-metrics/internal/const"
@@ -127,6 +129,7 @@ func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) 
 	}
 
 	wg.Wait()
+	fmt.Println(2)
 }
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
@@ -260,8 +263,18 @@ func main() {
 
 	client.SetBaseURL("http://" + cfg.RunAddr)
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
 	gm := GaugeMetrics{}
 	cm := CounterMetrics{}
+
+	go func() {
+		sig := <-sigs
+		logger.Log.Debug("Signal: ", sig)
+		updateMetrics(&gm, &cm, &cfg)
+		os.Exit(0)
+	}()
 
 	go writeMetrics(&gm, &cm, &cfg)
 
