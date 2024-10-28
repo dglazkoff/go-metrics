@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dglazkoff/go-metrics/cmd/agent/config"
 	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
@@ -77,7 +78,7 @@ func sendRequest(body interface{}, hash []byte, retryNumber int) {
 	}
 }
 
-func sendBody(body []byte, cfg *Config) {
+func sendBody(body []byte, cfg *config.Config) {
 	buf := bytes.NewBuffer(nil)
 	zb := gzip.NewWriter(buf)
 	_, err := zb.Write(body)
@@ -105,7 +106,7 @@ func sendBody(body []byte, cfg *Config) {
 	sendRequest(buf, hash, 0)
 }
 
-func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	workersChan := make(chan struct{}, cfg.RateLimit)
 	var wg sync.WaitGroup
 
@@ -132,7 +133,44 @@ func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) 
 	fmt.Println(2)
 }
 
-func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+func encryptBody(body []byte, cfg *config.Config) ([]byte, error) {
+	publicKeyPEM, err := os.ReadFile(cfg.CryptoKey)
+
+	if err != nil {
+		logger.Log.Debug("Error while read public key: ", err)
+		return nil, err
+	}
+
+	publicKeyBlock, _ := pem.Decode(publicKeyPEM)
+	publicKey, err := x509.ParsePKCS1PublicKey(publicKeyBlock.Bytes)
+	if err != nil {
+		logger.Log.Debug("Error while parse public key: ", err)
+		return nil, err
+	}
+
+	var encryptedBuffer bytes.Buffer
+	segmentSize := 256
+	for i := 0; i < len(body); i += segmentSize {
+		j := i + segmentSize
+		if j > len(body) {
+			j = len(body)
+		}
+		segmentToEncrypt := body[i:j]
+
+		encryptedSegment, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, segmentToEncrypt)
+
+		if err != nil {
+			logger.Log.Debug("Error while encrypt data: ", err)
+			return nil, err
+		}
+
+		encryptedBuffer.Write(encryptedSegment)
+	}
+
+	return encryptedBuffer.Bytes(), nil
+}
+
+func parseMetrics(gm *GaugeMetrics, cm *CounterMetrics) []models.Metrics {
 	var metrics []models.Metrics
 	valuesGm := reflect.ValueOf(*gm)
 	typesGm := valuesGm.Type()
@@ -170,6 +208,11 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		metrics = append(metrics, models.Metrics{MType: constants.MetricTypeCounter, ID: typesCm.Field(i).Name, Delta: &delta})
 	}
 
+	return metrics
+}
+
+func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
+	metrics := parseMetrics(gm, cm)
 	body, err := json.Marshal(metrics)
 
 	if err != nil {
@@ -177,45 +220,17 @@ func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
 		return
 	}
 
-	publicKeyPEM, err := os.ReadFile(cfg.CryptoKey)
+	encryptedBody, err := encryptBody(body, cfg)
+
 	if err != nil {
-		logger.Log.Debug("Error while read public key: ", err)
+		logger.Log.Debug("Error while encrypt body: ", err)
 		sendBody(body, cfg)
-		return
 	}
 
-	publicKeyBlock, _ := pem.Decode(publicKeyPEM)
-	publicKey, err := x509.ParsePKCS1PublicKey(publicKeyBlock.Bytes)
-	if err != nil {
-		logger.Log.Debug("Error while parse public key: ", err)
-		sendBody(body, cfg)
-		return
-	}
-
-	var encryptedBuffer bytes.Buffer
-	segmentSize := 256
-	for i := 0; i < len(body); i += segmentSize {
-		j := i + segmentSize
-		if j > len(body) {
-			j = len(body)
-		}
-		segmentToEncrypt := body[i:j]
-
-		encryptedSegment, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, segmentToEncrypt)
-
-		if err != nil {
-			logger.Log.Debug("Error while encrypt data: ", err)
-			sendBody(body, cfg)
-			return
-		}
-
-		encryptedBuffer.Write(encryptedSegment)
-	}
-
-	sendBody(encryptedBuffer.Bytes(), cfg)
+	sendBody(encryptedBody, cfg)
 }
 
-func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *Config) {
+func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	writeMetricsInterval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
@@ -255,7 +270,7 @@ func main() {
 		panic(err)
 	}
 
-	cfg := parseConfig()
+	cfg := config.ParseConfig()
 
 	fmt.Printf("Build version: %s\n", BuildVersion)
 	fmt.Printf("Build date: %s\n", BuildDate)

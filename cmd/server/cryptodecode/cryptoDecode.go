@@ -61,6 +61,7 @@ func (cryptoBody *CryptoBody) CryptoDecode(handler http.HandlerFunc) http.Handle
 			decryptedSegment, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encryptedSegment)
 			if err != nil {
 				logger.Log.Debug("Error while decrypting data: ", err)
+				request.Body = io.NopCloser(bytes.NewReader(body))
 				handler.ServeHTTP(writer, request)
 				return
 			}

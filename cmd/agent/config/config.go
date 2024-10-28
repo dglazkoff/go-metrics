@@ -1,8 +1,9 @@
-package main
+package config
 
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -25,6 +26,7 @@ type Config struct {
 
 func readConfigFile(configFile string, config *Config) {
 	fileConfig := Config{}
+	fmt.Println(configFile)
 	jsonFileConfig, err := os.ReadFile(configFile)
 
 	if err != nil {
@@ -64,7 +66,7 @@ func readConfigFile(configFile string, config *Config) {
 	}
 }
 
-func parseConfig() Config {
+func ParseConfig() Config {
 	config := Config{}
 	var configFile string
 

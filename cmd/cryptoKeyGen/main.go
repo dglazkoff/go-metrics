@@ -11,7 +11,13 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/logger"
 )
 
-func writeKeyToFile(keyBytes []byte, filePath string) error {
+type KeyWriter interface {
+	WriteKeyToFile(keyBytes []byte, filePath string) error
+}
+
+type FileKeyWriter struct{}
+
+func (w *FileKeyWriter) WriteKeyToFile(keyBytes []byte, filePath string) error {
 	filePrivate, err := os.Create(filePath)
 
 	if err != nil {
@@ -30,10 +36,11 @@ func writeKeyToFile(keyBytes []byte, filePath string) error {
 	return nil
 }
 
-func main() {
+func mainWithWriter(writer KeyWriter) error {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		logger.Log.Debug("Error generating private key: ", err)
+		return err
 	}
 
 	var privateKeyPEM bytes.Buffer
@@ -45,14 +52,14 @@ func main() {
 
 	if err != nil {
 		logger.Log.Debug("Error encoding private key: ", err)
-		return
+		return err
 	}
 
-	err = writeKeyToFile(privateKeyPEM.Bytes(), "keys/private.pem")
+	err = writer.WriteKeyToFile(privateKeyPEM.Bytes(), "keys/private.pem")
 
 	if err != nil {
 		logger.Log.Debug("Error writing private key to file: ", err)
-		return
+		return err
 	}
 
 	var publicKeyPEM bytes.Buffer
@@ -63,12 +70,30 @@ func main() {
 
 	if err != nil {
 		logger.Log.Debug("Error encoding public key: ", err)
-		return
+		return err
 	}
 
-	err = writeKeyToFile(publicKeyPEM.Bytes(), "keys/public.pem")
+	err = writer.WriteKeyToFile(publicKeyPEM.Bytes(), "keys/public.pem")
 
 	if err != nil {
 		logger.Log.Debug("Error writing public key to file: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	err := logger.Initialize()
+
+	if err != nil {
+		panic(err)
+	}
+
+	writer := &FileKeyWriter{}
+	err = mainWithWriter(writer)
+
+	if err != nil {
+		panic(err)
 	}
 }
