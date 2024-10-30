@@ -28,7 +28,7 @@ func Run(cfg *config.Config, errChan chan<- error) *http.Server {
 	var store storage.MetricsStorage
 
 	if cfg.DatabaseDSN != "" {
-		dbStore := db.New(pgDB, cfg)
+		dbStore := db.New(pgDB, db.RetryIntervals)
 		err = db.Bootstrap(dbStore)
 
 		if err != nil {

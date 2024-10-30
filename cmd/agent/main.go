@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	mathRand "math/rand"
+	"net"
 	"net/url"
 	"os"
 	"os/signal"
@@ -55,7 +56,10 @@ var retryIntervals = []time.Duration{1, 3, 5}
 
 func sendRequest(body interface{}, hash []byte, retryNumber int) {
 	logger.Log.Debug("Do request to /updates/")
-	request := client.R().SetBody(body).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json")
+	request := client.R().SetBody(body).
+		SetHeader("Content-Encoding", "gzip").
+		SetHeader("Content-Type", "application/json").
+		SetHeader("X-Real-IP", GetLocalIP())
 
 	if hash != nil {
 		request.SetHeader("HashSHA256", hex.EncodeToString(hash))
@@ -262,8 +266,25 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	}
 }
 
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
+}
+
 // go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
 func main() {
+	fmt.Println(GetLocalIP())
+
 	err := logger.Initialize()
 
 	if err != nil {

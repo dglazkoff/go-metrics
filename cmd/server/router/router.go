@@ -10,6 +10,7 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/gzip"
 	"github.com/dglazkoff/go-metrics/cmd/server/services/service"
 	"github.com/dglazkoff/go-metrics/cmd/server/storage"
+	subnetvalidate "github.com/dglazkoff/go-metrics/cmd/server/subnetValidate"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
 )
@@ -21,11 +22,12 @@ func Router(store storage.MetricsStorage, fs storage.FileStorage, cfg *config.Co
 	newAPI := api.NewAPI(metricService, cfg)
 	bh := bodyhash.Initialize(cfg)
 	cd := cryptodecode.Initialize(cfg)
+	ts := subnetvalidate.Initialize(cfg)
 
 	r.Post("/update/", logger.Log.Request(bh.BodyHash(gzip.GzipHandle(newAPI.UpdateMetricValueInBody(), false))))
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", logger.Log.Request(bh.BodyHash(gzip.GzipHandle(newAPI.UpdateMetricValueInRequest(), false))))
 
-	r.Post("/updates/", logger.Log.Request(bh.BodyHash(gzip.GzipHandle(cd.CryptoDecode(newAPI.UpdateList()), false))))
+	r.Post("/updates/", logger.Log.Request(ts.Validate(bh.BodyHash(gzip.GzipHandle(cd.CryptoDecode(newAPI.UpdateList()), false)))))
 
 	r.Post("/value/", logger.Log.Request(bh.BodyHash(gzip.GzipHandle(newAPI.GetMetricValueInBody(), false))))
 	r.Get("/value/{metricType}/{metricName}", logger.Log.Request(bh.BodyHash(gzip.GzipHandle(newAPI.GetMetricValueInRequest(), false))))

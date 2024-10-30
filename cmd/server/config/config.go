@@ -17,6 +17,7 @@ type Config struct {
 	DatabaseDSN     string `json:"database_dsn"`
 	SecretKey       string `json:"secret_key"`
 	CryptoKey       string `json:"crypto_key"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 func readConfigFile(configFile string, config *Config) {
@@ -62,6 +63,10 @@ func readConfigFile(configFile string, config *Config) {
 	if config.CryptoKey == "" && fileConfig.CryptoKey != "" {
 		config.CryptoKey = fileConfig.CryptoKey
 	}
+
+	if config.TrustedSubnet == "" && fileConfig.TrustedSubnet != "" {
+		config.TrustedSubnet = fileConfig.TrustedSubnet
+	}
 }
 
 func ParseConfig() Config {
@@ -75,6 +80,7 @@ func ParseConfig() Config {
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database dsn string")
 	flag.StringVar(&cfg.SecretKey, "k", "", "ключ для кодирования запроса")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "путь до файла с приватным ключом")
+	flag.StringVar(&cfg.TrustedSubnet, "t", "", "строковое представление бесклассовой адресации (CIDR)")
 	flag.StringVar(&configFile, "c", "cmd/server/config/config.json", "имя файла конфигурации")
 	flag.Parse()
 
@@ -114,6 +120,10 @@ func ParseConfig() Config {
 
 	if cryptoKey := os.Getenv("CRYPTO_KEY"); cryptoKey != "" {
 		cfg.CryptoKey = cryptoKey
+	}
+
+	if trustedSubnet := os.Getenv("TRUSTED_SUBNET"); trustedSubnet != "" {
+		cfg.TrustedSubnet = trustedSubnet
 	}
 
 	return cfg
