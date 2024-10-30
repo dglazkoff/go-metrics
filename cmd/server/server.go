@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 	_ "net/http/pprof"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
-func Run(cfg *config.Config) error {
+func Run(cfg *config.Config, errChan chan<- error) *http.Server {
 	pgDB, err := sql.Open("pgx", cfg.DatabaseDSN)
 
 	if err != nil {
@@ -50,5 +51,17 @@ func Run(cfg *config.Config) error {
 		go fileStorage.WriteMetrics(true)
 	}
 
-	return http.ListenAndServe(cfg.RunAddr, router.Router(store, fileStorage, cfg))
+	server := &http.Server{
+		Addr:    cfg.RunAddr,
+		Handler: router.Router(store, fileStorage, cfg),
+	}
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Log.Debug("Error on running server", "err", err)
+			errChan <- err
+		}
+	}()
+
+	return server
 }
