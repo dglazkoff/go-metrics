@@ -3,5 +3,6 @@
   "file_storage_path": "/tmp/metrics-db.json",
   "store_interval": 300,
   "is_restore": true,
-  "crypto_key": "keys/private.pem"
+  "crypto_key": "keys/private.pem",
+  "trusted_subnet": "192.168.31.206/32"
 }

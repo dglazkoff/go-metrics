@@ -76,7 +76,7 @@ func ParseConfig() Config {
 	flag.StringVar(&config.SecretKey, "k", "", "ключ для кодирования запроса")
 	flag.StringVar(&config.CryptoKey, "crypto-key", "", "путь до файла с публичным ключом")
 	flag.IntVar(&config.RateLimit, "l", 0, "количество одновременно исходящих запросов")
-	flag.StringVar(&configFile, "c", "cmd/agent/config.json", "имя файла конфигурации")
+	flag.StringVar(&configFile, "c", "cmd/agent/config/config.json", "имя файла конфигурации")
 	flag.Parse()
 
 	readConfigFile(configFile, &config)
