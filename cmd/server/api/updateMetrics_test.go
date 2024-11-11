@@ -85,6 +85,32 @@ func TestAPI_UpdateMetrics(t *testing.T) {
 				status: http.StatusOK,
 			},
 		},
+		{
+			name:  "add metrics even if not exists",
+			store: []models.Metrics{},
+			metrics: []models.Metrics{
+				{ID: "valueCounter", MType: constants.MetricTypeCounter, Delta: &deltaValue},
+				{ID: "valueGauge", MType: constants.MetricTypeGauge, Value: &value},
+			},
+			want: want{
+				store: []models.Metrics{
+					{ID: "valueCounter", MType: constants.MetricTypeCounter, Delta: &deltaValue},
+					{ID: "valueGauge", MType: constants.MetricTypeGauge, Value: &value},
+				},
+				status: http.StatusOK,
+			},
+		},
+		{
+			name:  "error if wrong metric type",
+			store: []models.Metrics{},
+			metrics: []models.Metrics{
+				{ID: "valueCounter", MType: "123", Delta: &deltaValue},
+			},
+			want: want{
+				store:  []models.Metrics{},
+				status: http.StatusBadRequest,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -114,6 +140,8 @@ func TestAPI_UpdateMetrics(t *testing.T) {
 
 			res, err := store.ReadMetrics(context.Background())
 			require.NoError(t, err)
+
+			assert.Equal(t, tt.want.status, result.StatusCode)
 			assert.Equal(t, tt.want.store, res)
 		})
 	}

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
-	"github.com/dglazkoff/go-metrics/cmd/server/storage"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
@@ -24,8 +23,7 @@ type fileStorage struct {
 	cfg     *config.Config
 }
 
-// тут не надо по указателю передавать?
-func New(s storage.MetricsStorage, cfg *config.Config) fileStorage {
+func New(s metricStorage, cfg *config.Config) fileStorage {
 	return fileStorage{storage: s, cfg: cfg}
 }
 

@@ -17,6 +17,7 @@ type Config struct {
 	SecretKey      string `json:"secret_key"`
 	RateLimit      int    `json:"rate_limit"`
 	CryptoKey      string `json:"crypto_key"`
+	IsGRPC         bool   `json:"is_grpc"`
 }
 
 /*
@@ -64,6 +65,10 @@ func readConfigFile(configFile string, config *Config) {
 	if config.CryptoKey == "" && fileConfig.CryptoKey != "" {
 		config.CryptoKey = fileConfig.CryptoKey
 	}
+
+	if !config.IsGRPC && fileConfig.IsGRPC {
+		config.IsGRPC = fileConfig.IsGRPC
+	}
 }
 
 func ParseConfig() Config {
@@ -76,7 +81,8 @@ func ParseConfig() Config {
 	flag.StringVar(&config.SecretKey, "k", "", "ключ для кодирования запроса")
 	flag.StringVar(&config.CryptoKey, "crypto-key", "", "путь до файла с публичным ключом")
 	flag.IntVar(&config.RateLimit, "l", 0, "количество одновременно исходящих запросов")
-	flag.StringVar(&configFile, "c", "cmd/agent/config.json", "имя файла конфигурации")
+	flag.BoolVar(&config.IsGRPC, "grpc", false, "отправка метрик через gRPC")
+	flag.StringVar(&configFile, "c", "cmd/agent/config/config.json", "имя файла конфигурации")
 	flag.Parse()
 
 	readConfigFile(configFile, &config)

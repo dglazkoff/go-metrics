@@ -1,20 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/hex"
-	"encoding/json"
-	"encoding/pem"
-	"errors"
 	"fmt"
+	"log"
 	mathRand "math/rand"
-	"net/url"
 	"os"
 	"os/signal"
 	"reflect"
@@ -23,13 +12,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dglazkoff/go-metrics/cmd/agent/client"
 	"github.com/dglazkoff/go-metrics/cmd/agent/config"
 	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
-	"github.com/go-resty/resty/v2"
+	pb "github.com/dglazkoff/go-metrics/internal/models/proto"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -48,62 +40,6 @@ type GaugeMetrics struct {
 
 type CounterMetrics struct {
 	PollCount int64
-}
-
-var client = resty.New()
-var retryIntervals = []time.Duration{1, 3, 5}
-
-func sendRequest(body interface{}, hash []byte, retryNumber int) {
-	logger.Log.Debug("Do request to /updates/")
-	request := client.R().SetBody(body).SetHeader("Content-Encoding", "gzip").SetHeader("Content-Type", "application/json")
-
-	if hash != nil {
-		request.SetHeader("HashSHA256", hex.EncodeToString(hash))
-	}
-
-	_, err := request.Post("/updates/")
-
-	if err != nil {
-		logger.Log.Debug("Error on request: ", err)
-
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
-			if retryNumber == 3 {
-				return
-			}
-
-			time.Sleep(retryIntervals[retryNumber] * time.Second)
-			sendRequest(body, hash, retryNumber+1)
-		}
-	}
-}
-
-func sendBody(body []byte, cfg *config.Config) {
-	buf := bytes.NewBuffer(nil)
-	zb := gzip.NewWriter(buf)
-	_, err := zb.Write(body)
-
-	if err != nil {
-		logger.Log.Debug("Error on write gzip data: ", err)
-		return
-	}
-
-	err = zb.Close()
-
-	if err != nil {
-		logger.Log.Debug("Error on close gzip writer: ", err)
-		return
-	}
-
-	var hash []byte
-	if cfg.SecretKey != "" {
-		logger.Log.Debug("Encoding body")
-		h := hmac.New(sha256.New, []byte(cfg.SecretKey))
-		h.Write(buf.Bytes())
-		hash = h.Sum(nil)
-	}
-
-	sendRequest(buf, hash, 0)
 }
 
 func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
@@ -131,43 +67,6 @@ func updateMetricsWorkerPool(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.C
 
 	wg.Wait()
 	fmt.Println(2)
-}
-
-func encryptBody(body []byte, cfg *config.Config) ([]byte, error) {
-	publicKeyPEM, err := os.ReadFile(cfg.CryptoKey)
-
-	if err != nil {
-		logger.Log.Debug("Error while read public key: ", err)
-		return nil, err
-	}
-
-	publicKeyBlock, _ := pem.Decode(publicKeyPEM)
-	publicKey, err := x509.ParsePKCS1PublicKey(publicKeyBlock.Bytes)
-	if err != nil {
-		logger.Log.Debug("Error while parse public key: ", err)
-		return nil, err
-	}
-
-	var encryptedBuffer bytes.Buffer
-	segmentSize := 256
-	for i := 0; i < len(body); i += segmentSize {
-		j := i + segmentSize
-		if j > len(body) {
-			j = len(body)
-		}
-		segmentToEncrypt := body[i:j]
-
-		encryptedSegment, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, segmentToEncrypt)
-
-		if err != nil {
-			logger.Log.Debug("Error while encrypt data: ", err)
-			return nil, err
-		}
-
-		encryptedBuffer.Write(encryptedSegment)
-	}
-
-	return encryptedBuffer.Bytes(), nil
 }
 
 func parseMetrics(gm *GaugeMetrics, cm *CounterMetrics) []models.Metrics {
@@ -213,61 +112,70 @@ func parseMetrics(gm *GaugeMetrics, cm *CounterMetrics) []models.Metrics {
 
 func updateMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	metrics := parseMetrics(gm, cm)
-	body, err := json.Marshal(metrics)
 
-	if err != nil {
-		logger.Log.Debug("Error while marshal data: ", err)
+	if cfg.IsGRPC {
+		conn, err := grpc.NewClient(cfg.RunAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer conn.Close()
+		mc := pb.NewMetricsClient(conn)
+
+		grpcClient := client.NewMetricsClient(mc)
+		grpcClient.SendMetricsByGRPC(metrics)
 		return
 	}
 
-	encryptedBody, err := encryptBody(body, cfg)
+	httpClient := client.NewClient([]time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second})
+	httpClient.SendMetricsByHTTP(metrics, cfg)
+}
+
+func writeMetricsOnce(
+	gm *GaugeMetrics,
+	cm *CounterMetrics,
+	memStatProvider func() (*mem.VirtualMemoryStat, error),
+	cpuCountProvider func(bool) (int, error),
+) {
+	var memStats runtime.MemStats
+	v, err := memStatProvider()
 
 	if err != nil {
-		logger.Log.Debug("Error while encrypt body: ", err)
-		sendBody(body, cfg)
+		logger.Log.Debug("Error while get memory stats: ", err)
+	} else {
+		gm.TotalMemory = float64(v.Total)
+		gm.FreeMemory = float64(v.Free)
 	}
 
-	sendBody(encryptedBody, cfg)
+	c, err := cpuCountProvider(false)
+
+	if err != nil {
+		logger.Log.Debug("Error while get cpu counts: ", err)
+	} else {
+		gm.CPUutilization1 = float64(c)
+	}
+
+	runtime.ReadMemStats(&memStats)
+	gm.MemStats = memStats
+	gm.RandomValue = mathRand.Float64()
+
+	cm.PollCount += 1
 }
 
 func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	writeMetricsInterval := time.Duration(cfg.PollInterval) * time.Second
 
-	for {
-		time.Sleep(writeMetricsInterval)
+	ticker := time.NewTicker(writeMetricsInterval)
+	defer ticker.Stop()
 
-		var memStats runtime.MemStats
-		v, err := mem.VirtualMemory()
-
-		if err != nil {
-			logger.Log.Debug("Error while get memory stats: ", err)
-		} else {
-			gm.TotalMemory = float64(v.Total)
-			gm.FreeMemory = float64(v.Free)
-		}
-
-		c, err := cpu.Counts(false)
-
-		if err != nil {
-			logger.Log.Debug("Error while get cpu counts: ", err)
-		} else {
-			gm.CPUutilization1 = float64(c)
-		}
-
-		runtime.ReadMemStats(&memStats)
-		gm.MemStats = memStats
-		gm.RandomValue = mathRand.Float64()
-
-		cm.PollCount += 1
+	for range ticker.C {
+		writeMetricsOnce(gm, cm, mem.VirtualMemory, cpu.Counts)
 	}
 }
 
-// go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
-func main() {
+func runApp() error {
 	err := logger.Initialize()
-
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	cfg := config.ParseConfig()
@@ -275,8 +183,6 @@ func main() {
 	fmt.Printf("Build version: %s\n", BuildVersion)
 	fmt.Printf("Build date: %s\n", BuildDate)
 	fmt.Printf("Build commit: %s\n", BuildCommit)
-
-	client.SetBaseURL("http://" + cfg.RunAddr)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -294,4 +200,13 @@ func main() {
 	go writeMetrics(&gm, &cm, &cfg)
 
 	updateMetricsWorkerPool(&gm, &cm, &cfg)
+	fmt.Println("deadd")
+	return nil
+}
+
+// go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
+func main() {
+	if err := runApp(); err != nil {
+		panic(err)
+	}
 }

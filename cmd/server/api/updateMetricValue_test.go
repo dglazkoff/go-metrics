@@ -48,11 +48,11 @@ func TestAPI_UpdateMetricValue(t *testing.T) {
 	t.Cleanup(clean)
 
 	tests := []struct {
-		name    string
-		store   []models.Metrics
-		metric  models.Metrics
-		request string
-		want    want
+		name        string
+		store       []models.Metrics
+		metric      models.Metrics
+		metricValue string
+		want        want
 	}{
 		{
 			name:   "success test",
@@ -150,7 +150,11 @@ func TestAPI_UpdateMetricValue(t *testing.T) {
 				rctx.URLParams.Add("metricName", tt.metric.ID)
 
 				if tt.metric.Value != nil {
-					rctx.URLParams.Add("metricValue", strconv.FormatFloat(*tt.metric.Value, 'f', -1, 64))
+					if tt.metricValue != "" {
+						rctx.URLParams.Add("metricValue", tt.metricValue)
+					} else {
+						rctx.URLParams.Add("metricValue", strconv.FormatFloat(*tt.metric.Value, 'f', -1, 64))
+					}
 				}
 
 				if tt.metric.Delta != nil {
@@ -177,6 +181,97 @@ func TestAPI_UpdateMetricValue(t *testing.T) {
 			res, err := store.ReadMetrics(context.Background())
 			require.NoError(t, err)
 			assert.Equal(t, tt.want.store, res)
+		})
+	}
+}
+
+func TestUpdateMetricValueInRequest_Error(t *testing.T) {
+	cfg := config.Config{
+		RunAddr:         ":8080",
+		FileStoragePath: "/tmp/metrics-db.json",
+		StoreInterval:   300,
+		IsRestore:       true,
+		DatabaseDSN:     "",
+		SecretKey:       "",
+	}
+	var deltaValue int64 = 1
+	var value float64 = 101
+
+	type want struct {
+		status int
+	}
+
+	tests := []struct {
+		name        string
+		metric      models.Metrics
+		metricValue string
+		want        want
+	}{
+		{
+			name:        "wrong gauge metric value",
+			metric:      models.Metrics{ID: "value1", MType: constants.MetricTypeGauge, Value: &value},
+			metricValue: "wrong",
+			want: want{
+				status: http.StatusBadRequest,
+			},
+		},
+		{
+			name:        "wrong counter metric value",
+			metric:      models.Metrics{ID: "value1", MType: constants.MetricTypeCounter, Delta: &deltaValue},
+			metricValue: "wrong",
+			want: want{
+				status: http.StatusBadRequest,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := logger.Initialize()
+			require.NoError(t, err)
+
+			store := metrics.New([]models.Metrics{})
+			fileStore := file.New(store, &cfg)
+			metricService := service.New(store, fileStore, &cfg)
+			newAPI := NewAPI(metricService, &cfg)
+
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				rctx := chi.NewRouteContext()
+				rctx.URLParams.Add("metricType", tt.metric.MType)
+				rctx.URLParams.Add("metricName", tt.metric.ID)
+
+				if tt.metric.Value != nil {
+					if tt.metricValue != "" {
+						rctx.URLParams.Add("metricValue", tt.metricValue)
+					} else {
+						rctx.URLParams.Add("metricValue", strconv.FormatFloat(*tt.metric.Value, 'f', -1, 64))
+					}
+				}
+
+				if tt.metric.Delta != nil {
+					if tt.metricValue != "" {
+						rctx.URLParams.Add("metricValue", tt.metricValue)
+					} else {
+						rctx.URLParams.Add("metricValue", strconv.FormatInt(*tt.metric.Delta, 10))
+					}
+				}
+
+				r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+
+				newAPI.UpdateMetricValueInRequest()(w, r)
+			}))
+			defer ts.Close()
+
+			request, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+			require.NoError(t, err)
+
+			result, err := ts.Client().Do(request)
+			require.NoError(t, err)
+
+			err = result.Body.Close()
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.want.status, result.StatusCode)
 		})
 	}
 }

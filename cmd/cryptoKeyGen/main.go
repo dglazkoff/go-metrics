@@ -83,17 +83,25 @@ func mainWithWriter(writer KeyWriter) error {
 	return nil
 }
 
-func main() {
+func runApp() error {
 	err := logger.Initialize()
-
 	if err != nil {
-		panic(err)
+		logger.Log.Debug("Error initializing logger: ", err)
+		return err
 	}
 
 	writer := &FileKeyWriter{}
 	err = mainWithWriter(writer)
-
 	if err != nil {
+		logger.Log.Debug("Error in mainWithWriter: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	if err := runApp(); err != nil {
 		panic(err)
 	}
 }

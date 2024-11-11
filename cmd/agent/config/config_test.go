@@ -26,6 +26,7 @@ func TestConfig_Flags(t *testing.T) {
 		"-l", "100",
 		"-crypto-key", "crypto",
 		"-c", "",
+		"-grpc",
 	}
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -37,6 +38,7 @@ func TestConfig_Flags(t *testing.T) {
 	assert.Equal(t, "secret", cfg.SecretKey)
 	assert.Equal(t, 100, cfg.RateLimit)
 	assert.Equal(t, "crypto", cfg.CryptoKey)
+	assert.Equal(t, true, cfg.IsGRPC)
 }
 
 func TestConfig_SimpleEnv(t *testing.T) {
@@ -172,7 +174,8 @@ func TestParseConfig_File(t *testing.T) {
 		"report_interval": 88,
 		"secret_key": "secret",
 		"rate_limit": 100,
-		"crypto_key": "crypto"
+		"crypto_key": "crypto",
+		"is_grpc": true
 	}`
 	_, err = tmpFile.Write([]byte(configContent))
 	require.NoError(t, err)
@@ -188,4 +191,5 @@ func TestParseConfig_File(t *testing.T) {
 	assert.Equal(t, "secret", cfg.SecretKey)
 	assert.Equal(t, 100, cfg.RateLimit)
 	assert.Equal(t, "crypto", cfg.CryptoKey)
+	assert.Equal(t, true, cfg.IsGRPC)
 }

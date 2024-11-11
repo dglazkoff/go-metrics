@@ -3,7 +3,13 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 
+	"github.com/dglazkoff/go-metrics/cmd/server/config"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/db"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/file"
+	"github.com/dglazkoff/go-metrics/cmd/server/storage/metrics"
+	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
 )
 
@@ -28,4 +34,36 @@ type FileStorage interface {
 	WriteMetrics(isLoop bool)
 	// ReadMetrics - метод для чтения метрик из файла
 	ReadMetrics()
+}
+
+func InitStorages(cfg *config.Config) (MetricsStorage, FileStorage, error) {
+	var store MetricsStorage
+
+	if cfg.DatabaseDSN != "" {
+		pgDB, err := sql.Open("pgx", cfg.DatabaseDSN)
+
+		if err != nil {
+			logger.Log.Debug("Error on open db", "err", err)
+			return nil, nil, err
+		}
+		defer pgDB.Close()
+
+		dbStore := db.New(pgDB, db.RetryIntervals)
+		err = db.Bootstrap(dbStore)
+
+		if err != nil {
+			logger.Log.Debug("Error on bootstrap db ", err)
+			return nil, nil, err
+		}
+
+		store = dbStore
+	} else {
+		store = metrics.New([]models.Metrics{})
+	}
+
+	fileStorage := file.New(store, cfg)
+
+	fileStorage.ReadMetrics()
+
+	return store, fileStorage, nil
 }

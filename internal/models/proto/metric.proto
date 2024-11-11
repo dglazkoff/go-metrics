@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package models;
+
+option go_package = "github.com/dglazkoff/go-metrics/internal/models/proto";
+
+message Metric {
+  string id = 1;
+  enum Type {
+    UNSPECIFIED = 0;
+    Gauge = 1;
+    Counter = 2;
+  }
+  Type type = 2;
+  oneof metric_value {
+    int64 delta = 3;
+    double value = 4;
+  }
+}
+
+message UpdateMetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+message UpdateMetricsResponse {
+
+}
+
+service Metrics {
+  rpc UpdateMetrics(UpdateMetricsRequest) returns (UpdateMetricsResponse);
+}
