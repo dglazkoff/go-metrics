@@ -164,11 +164,11 @@ func writeMetricsOnce(
 func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	writeMetricsInterval := time.Duration(cfg.PollInterval) * time.Second
 
-	for {
-		select {
-		case <-time.After(writeMetricsInterval):
-			writeMetricsOnce(gm, cm, mem.VirtualMemory, cpu.Counts)
-		}
+	ticker := time.NewTicker(writeMetricsInterval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		writeMetricsOnce(gm, cm, mem.VirtualMemory, cpu.Counts)
 	}
 }
 

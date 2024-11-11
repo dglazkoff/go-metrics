@@ -66,7 +66,7 @@ func readConfigFile(configFile string, config *Config) {
 		config.CryptoKey = fileConfig.CryptoKey
 	}
 
-	if config.IsGRPC == false && fileConfig.IsGRPC != false {
+	if !config.IsGRPC && fileConfig.IsGRPC {
 		config.IsGRPC = fileConfig.IsGRPC
 	}
 }

@@ -58,7 +58,10 @@ func TestPingDB(t *testing.T) {
 
 		handler.ServeHTTP(rec, req)
 
-		assert.Equal(tt, http.StatusOK, rec.Result().StatusCode, "Expected HTTP status 200 OK")
+		res := rec.Result()
+		defer res.Body.Close()
+
+		assert.Equal(tt, http.StatusOK, res.StatusCode, "Expected HTTP status 200 OK")
 		mockService.AssertCalled(tt, "PingDB", mock.Anything)
 	})
 
@@ -74,7 +77,10 @@ func TestPingDB(t *testing.T) {
 
 		handler.ServeHTTP(rec, req)
 
-		assert.Equal(tt, http.StatusInternalServerError, rec.Result().StatusCode, "Expected HTTP status 500 Internal Server Error")
+		res := rec.Result()
+		defer res.Body.Close()
+
+		assert.Equal(tt, http.StatusInternalServerError, res.StatusCode, "Expected HTTP status 500 Internal Server Error")
 		mockService.AssertCalled(tt, "PingDB", mock.Anything)
 	})
 }

@@ -34,9 +34,8 @@ func TestSendMetricsByGRPC(t *testing.T) {
 	defer s.Stop()
 
 	go func() {
-		if err := s.Serve(lis); err != nil {
-			t.Fatalf("Server exited with error: %v", err)
-		}
+		err = s.Serve(lis)
+		assert.NoError(t, err)
 	}()
 
 	conn, err := grpc.NewClient("bufnet",
