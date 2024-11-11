@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +12,7 @@ import (
 	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -36,7 +38,14 @@ func main() {
 	fmt.Printf("Build date: %s\n", BuildDate)
 	fmt.Printf("Build commit: %s\n", BuildCommit)
 
-	server := Run(&cfg, errChan)
+	var grpcServer *grpc.Server
+	var httpServer *http.Server
+
+	if cfg.IsGRPC {
+		grpcServer = RunGRPCServer(&cfg, errChan)
+	} else {
+		httpServer = RunHTTPServer(&cfg, errChan)
+	}
 
 	select {
 	case err := <-errChan:
@@ -45,14 +54,22 @@ func main() {
 		logger.Log.Debug("Signal: ", sig)
 	}
 
-	// увидел такой способ, но не понимаю, как он работает
-	// посмотреть пример из шатдауна, там немного другое флоу, разобраться в чем разница и как он работает
-	// почему у меня ListenAndServe не завершал работу программы?
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	if httpServer != nil {
+		/*
+			увидел такой способ, но не понимаю, как он работает
+			посмотреть пример из шатдауна, там немного другое флоу, разобраться в чем разница и как он работает
+			почему у меня ListenAndServe не завершал работу программы?
+		*/
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
-		logger.Log.Debug("Server Shutdown Failed", "err", err)
+		if err := httpServer.Shutdown(ctx); err != nil {
+			logger.Log.Debug("Server Shutdown Failed", "err", err)
+		}
+	}
+
+	if grpcServer != nil {
+		grpcServer.GracefulStop()
 	}
 
 	logger.Log.Infow("Server exited properly")

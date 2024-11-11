@@ -4,5 +4,6 @@
   "store_interval": 300,
   "is_restore": true,
   "crypto_key": "keys/private.pem",
-  "trusted_subnet": "192.168.31.206/32"
+  "trusted_subnet": "192.168.31.206/32",
+  "is_grpc": true
 }

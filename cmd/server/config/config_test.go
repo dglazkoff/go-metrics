@@ -28,6 +28,7 @@ func TestConfig_Flags(t *testing.T) {
 		"-crypto-key", "crypto",
 		"-t", "trusted_subnet",
 		"-c", "",
+		"-grpc",
 	}
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -41,6 +42,7 @@ func TestConfig_Flags(t *testing.T) {
 	assert.Equal(t, true, cfg.IsRestore)
 	assert.Equal(t, "crypto", cfg.CryptoKey)
 	assert.Equal(t, "trusted_subnet", cfg.TrustedSubnet)
+	assert.Equal(t, true, cfg.IsGRPC)
 }
 
 func TestConfig_SimpleEnv(t *testing.T) {
@@ -204,7 +206,8 @@ func TestParseConfig_File(t *testing.T) {
 		"file_storage_path": "./storage",
 		"database_dsn": "some_dsn",
 		"is_restore": true,
-		"trusted_subnet": "trusted_subnet_number"
+		"trusted_subnet": "trusted_subnet_number",
+		"is_grpc": true
 	}`
 	_, err = tmpFile.Write([]byte(configContent))
 	require.NoError(t, err)
@@ -222,4 +225,5 @@ func TestParseConfig_File(t *testing.T) {
 	assert.Equal(t, true, cfg.IsRestore)
 	assert.Equal(t, "crypto", cfg.CryptoKey)
 	assert.Equal(t, "trusted_subnet_number", cfg.TrustedSubnet)
+	assert.Equal(t, true, cfg.IsGRPC)
 }

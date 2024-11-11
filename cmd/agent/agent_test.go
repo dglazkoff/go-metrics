@@ -1,21 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"os"
 	"runtime"
 	"testing"
 
-	"github.com/dglazkoff/go-metrics/cmd/agent/config"
 	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
+	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestParseMetrics(t *testing.T) {
@@ -61,60 +55,40 @@ func TestParseMetrics(t *testing.T) {
 	}
 }
 
-func TestEncryptBody(t *testing.T) {
-	err := logger.Initialize()
-	require.NoError(t, err)
+type MockMem struct {
+	mock.Mock
+}
 
-	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	publicKeyBytes := x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)
-	publicKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: publicKeyBytes})
-	keyFile, _ := os.CreateTemp("", "public_key.pem")
-	defer os.Remove(keyFile.Name())
-	os.WriteFile(keyFile.Name(), publicKeyPEM, 0644)
+func (m *MockMem) VirtualMemory() (*mem.VirtualMemoryStat, error) {
+	args := m.Called()
+	return args.Get(0).(*mem.VirtualMemoryStat), args.Error(1)
+}
 
-	cfg := &config.Config{CryptoKey: keyFile.Name()}
+type MockCPU struct {
+	mock.Mock
+}
 
-	tests := []struct {
-		name        string
-		body        []byte
-		setup       func()
-		expectError bool
-	}{
-		{
-			name:        "successful encryption",
-			body:        []byte("test body for encryption"),
-			setup:       func() {},
-			expectError: false,
-		},
-		{
-			name: "error reading public key",
-			body: []byte("test body for encryption"),
-			setup: func() {
-				cfg.CryptoKey = "invalid_path.pem"
-			},
-			expectError: true,
-		},
-		{
-			name:        "error encrypting segment",
-			body:        bytes.Repeat([]byte("A"), 256),
-			setup:       func() {},
-			expectError: true,
-		},
-	}
+func (c *MockCPU) Counts(logical bool) (int, error) {
+	args := c.Called(logical)
+	return args.Int(0), args.Error(1)
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
-			encryptedBody, err := encryptBody(tt.body, cfg)
+func TestWriteMetricsOnce(t *testing.T) {
+	gm := &GaugeMetrics{}
+	cm := &CounterMetrics{}
 
-			if tt.expectError {
-				assert.Error(t, err)
-				assert.Nil(t, encryptedBody)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, encryptedBody)
-				assert.NotEmpty(t, encryptedBody)
-			}
-		})
-	}
+	mockMem := &MockMem{}
+	mockCPU := &MockCPU{}
+	mockMem.On("VirtualMemory").Return(&mem.VirtualMemoryStat{Total: 8000000, Free: 2000000}, nil)
+	mockCPU.On("Counts", false).Return(4, nil)
+
+	writeMetricsOnce(gm, cm, mockMem.VirtualMemory, mockCPU.Counts)
+
+	assert.Equal(t, 8000000.0, gm.TotalMemory, "TotalMemory should match the mocked value")
+	assert.Equal(t, 2000000.0, gm.FreeMemory, "FreeMemory should match the mocked value")
+	assert.Equal(t, 4.0, gm.CPUutilization1, "CPUutilization1 should match the mocked value")
+	assert.Equal(t, int64(1), cm.PollCount, "PollCount should be incremented")
+
+	mockMem.AssertExpectations(t)
+	mockCPU.AssertExpectations(t)
 }
