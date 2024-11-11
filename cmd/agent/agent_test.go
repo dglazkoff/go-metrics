@@ -1,8 +1,12 @@
 package main
 
 import (
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"testing"
+	"time"
 
 	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
@@ -91,4 +95,36 @@ func TestWriteMetricsOnce(t *testing.T) {
 
 	mockMem.AssertExpectations(t)
 	mockCPU.AssertExpectations(t)
+}
+
+func TestRunApp_Success(t *testing.T) {
+	err := logger.Initialize()
+	assert.NoError(t, err)
+
+	originalArgs := os.Args
+	defer func() { os.Args = originalArgs }()
+	os.Args = []string{
+		"cmd/agent",
+		"-p", "10",
+		"-l", "1",
+	}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	go func() {
+		err := runApp()
+		assert.NoError(t, err)
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	process, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		t.Fatalf("Failed to find current process: %v", err)
+	}
+	process.Signal(syscall.SIGTERM)
+
+	time.Sleep(100 * time.Millisecond)
+
+	assert.NoError(t, err, "runApp should complete without error")
 }

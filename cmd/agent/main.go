@@ -172,12 +172,10 @@ func writeMetrics(gm *GaugeMetrics, cm *CounterMetrics, cfg *config.Config) {
 	}
 }
 
-// go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
-func main() {
+func runApp() error {
 	err := logger.Initialize()
-
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	cfg := config.ParseConfig()
@@ -202,4 +200,13 @@ func main() {
 	go writeMetrics(&gm, &cm, &cfg)
 
 	updateMetricsWorkerPool(&gm, &cm, &cfg)
+	fmt.Println("deadd")
+	return nil
+}
+
+// go run -ldflags "-X main.BuildVersion=v1.0.1 -X 'main.BuildDate=$(date +'%Y/%m/%d %H:%M:%S')'" ./cmd/agent
+func main() {
+	if err := runApp(); err != nil {
+		panic(err)
+	}
 }

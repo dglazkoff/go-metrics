@@ -54,14 +54,12 @@ func (c *Client) SendMetricsByHTTP(metrics []models.Metrics, cfg *config.Config)
 	body, err := json.Marshal(metrics)
 
 	if err != nil {
-		logger.Log.Debug("Error while marshal data: ", err)
 		return
 	}
 
 	encryptedBody, err := EncryptBody(body, cfg)
 
 	if err != nil {
-		logger.Log.Debug("Error while encrypt body: ", err)
 		c.sendBody(body, cfg)
 		return
 	}
@@ -73,14 +71,12 @@ func EncryptBody(body []byte, cfg *config.Config) ([]byte, error) {
 	publicKeyPEM, err := os.ReadFile(cfg.CryptoKey)
 
 	if err != nil {
-		logger.Log.Debug("Error while read public key: ", err)
 		return nil, err
 	}
 
 	publicKeyBlock, _ := pem.Decode(publicKeyPEM)
 	publicKey, err := x509.ParsePKCS1PublicKey(publicKeyBlock.Bytes)
 	if err != nil {
-		logger.Log.Debug("Error while parse public key: ", err)
 		return nil, err
 	}
 
@@ -96,7 +92,6 @@ func EncryptBody(body []byte, cfg *config.Config) ([]byte, error) {
 		encryptedSegment, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, segmentToEncrypt)
 
 		if err != nil {
-			logger.Log.Debug("Error while encrypt data: ", err)
 			return nil, err
 		}
 
@@ -142,14 +137,12 @@ func (c *Client) sendBody(body []byte, cfg *config.Config) {
 	_, err := zb.Write(body)
 
 	if err != nil {
-		logger.Log.Debug("Error on write gzip data: ", err)
 		return
 	}
 
 	err = zb.Close()
 
 	if err != nil {
-		logger.Log.Debug("Error on close gzip writer: ", err)
 		return
 	}
 

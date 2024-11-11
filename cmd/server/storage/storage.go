@@ -36,7 +36,7 @@ type FileStorage interface {
 	ReadMetrics()
 }
 
-func InitStorages(cfg *config.Config) (MetricsStorage, FileStorage) {
+func InitStorages(cfg *config.Config) (MetricsStorage, FileStorage, error) {
 	var store MetricsStorage
 
 	if cfg.DatabaseDSN != "" {
@@ -44,7 +44,7 @@ func InitStorages(cfg *config.Config) (MetricsStorage, FileStorage) {
 
 		if err != nil {
 			logger.Log.Debug("Error on open db", "err", err)
-			panic(err)
+			return nil, nil, err
 		}
 		defer pgDB.Close()
 
@@ -53,7 +53,7 @@ func InitStorages(cfg *config.Config) (MetricsStorage, FileStorage) {
 
 		if err != nil {
 			logger.Log.Debug("Error on bootstrap db ", err)
-			panic(err)
+			return nil, nil, err
 		}
 
 		store = dbStore
@@ -65,5 +65,5 @@ func InitStorages(cfg *config.Config) (MetricsStorage, FileStorage) {
 
 	fileStorage.ReadMetrics()
 
-	return store, fileStorage
+	return store, fileStorage, nil
 }
