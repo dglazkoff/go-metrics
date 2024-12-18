@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dglazkoff/go-metrics/cmd/server/config"
 	constants "github.com/dglazkoff/go-metrics/internal/const"
 	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/dglazkoff/go-metrics/internal/models"
@@ -16,26 +15,26 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var retryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
+var RetryIntervals = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
 type dbStorage struct {
-	db  *sql.DB
-	cfg *config.Config
+	db             *sql.DB
+	retryIntervals []time.Duration
 }
 
-func New(db *sql.DB, cfg *config.Config) *dbStorage {
-	return &dbStorage{cfg: cfg, db: db}
+func New(db *sql.DB, retryIntervals []time.Duration) *dbStorage {
+	return &dbStorage{db: db, retryIntervals: retryIntervals}
 }
 
-func dbExecute(exec func() (sql.Result, error)) (res sql.Result, err error) {
-	for index, interval := range retryIntervals {
+func (d *dbStorage) dbExecute(exec func() (sql.Result, error)) (res sql.Result, err error) {
+	for index, interval := range d.retryIntervals {
 		logger.Log.Debug("execute db. retry number: ", index)
 		res, err = exec()
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgerrcode.IsConnectionException(pgErr.Code) {
-				if index == len(retryIntervals)-1 {
+				if index == len(d.retryIntervals)-1 {
 					return nil, fmt.Errorf("no connection to database")
 				}
 
@@ -50,15 +49,15 @@ func dbExecute(exec func() (sql.Result, error)) (res sql.Result, err error) {
 	return res, err
 }
 
-func dbQueryRow(query func() (*sql.Row, error)) (res *sql.Row, err error) {
-	for index, interval := range retryIntervals {
+func (d *dbStorage) dbQueryRow(query func() (*sql.Row, error)) (res *sql.Row, err error) {
+	for index, interval := range d.retryIntervals {
 		logger.Log.Debug("reading data from db. retry number: ", index)
 		res, err = query()
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgerrcode.IsConnectionException(pgErr.Code) {
-				if index == len(retryIntervals)-1 {
+				if index == len(d.retryIntervals)-1 {
 					return nil, fmt.Errorf("no connection to database")
 				}
 
@@ -74,7 +73,7 @@ func dbQueryRow(query func() (*sql.Row, error)) (res *sql.Row, err error) {
 }
 
 func Bootstrap(d *dbStorage) error {
-	_, err := dbExecute(func() (sql.Result, error) {
+	_, err := d.dbExecute(func() (sql.Result, error) {
 		return d.db.Exec("CREATE TABLE IF NOT EXISTS metrics (id VARCHAR(250) PRIMARY KEY, type VARCHAR(250) NOT NULL, value DOUBLE PRECISION, delta BIGINT)")
 	})
 
@@ -138,7 +137,7 @@ func (d *dbStorage) ReadMetrics(ctx context.Context) ([]models.Metrics, error) {
 
 func (d *dbStorage) ReadMetric(ctx context.Context, id string) (models.Metrics, error) {
 	var metric models.Metrics
-	_, err := dbQueryRow(func() (*sql.Row, error) {
+	_, err := d.dbQueryRow(func() (*sql.Row, error) {
 		row := d.db.QueryRowContext(ctx, "SELECT id, type, value, delta from metrics WHERE id = $1", id)
 
 		err := row.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
@@ -156,7 +155,7 @@ func (d *dbStorage) ReadMetric(ctx context.Context, id string) (models.Metrics, 
 
 func (d *dbStorage) UpdateMetric(ctx context.Context, metric models.Metrics) error {
 	if metric.MType == constants.MetricTypeGauge {
-		_, err := dbExecute(func() (sql.Result, error) {
+		_, err := d.dbExecute(func() (sql.Result, error) {
 			return d.db.ExecContext(
 				ctx,
 				"INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET value = $3",
@@ -170,7 +169,7 @@ func (d *dbStorage) UpdateMetric(ctx context.Context, metric models.Metrics) err
 		dbMetric, err := d.ReadMetric(ctx, metric.ID)
 
 		if err != nil {
-			_, err = dbExecute(func() (sql.Result, error) {
+			_, err = d.dbExecute(func() (sql.Result, error) {
 				return d.db.ExecContext(ctx, "INSERT INTO metrics (id, type, value, delta) VALUES($1, $2, $3, $4)", metric.ID, metric.MType, metric.Value, metric.Delta)
 			})
 
@@ -178,7 +177,7 @@ func (d *dbStorage) UpdateMetric(ctx context.Context, metric models.Metrics) err
 		}
 
 		newDelta := *dbMetric.Delta + *metric.Delta
-		_, err = dbExecute(func() (sql.Result, error) {
+		_, err = d.dbExecute(func() (sql.Result, error) {
 			return d.db.ExecContext(ctx, "UPDATE metrics SET delta = $1 WHERE id = $2", &newDelta, metric.ID)
 		})
 		return err

@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,15 +17,16 @@ import (
 
 type MockStorage struct {
 	metrics []models.Metrics
+	err     error
 }
 
 func (m *MockStorage) SaveMetrics(ctx context.Context, metrics []models.Metrics) error {
 	m.metrics = metrics
-	return nil
+	return m.err
 }
 
 func (m *MockStorage) ReadMetrics(ctx context.Context) ([]models.Metrics, error) {
-	return m.metrics, nil
+	return m.metrics, m.err
 }
 
 func TestReadMetrics(t *testing.T) {
@@ -39,6 +41,7 @@ func TestReadMetrics(t *testing.T) {
 		cfg            *config.Config
 		metrics        []models.Metrics
 		expectSaveCall bool
+		err            error
 	}{
 		{
 			name: "Successful read and save",
@@ -64,11 +67,24 @@ func TestReadMetrics(t *testing.T) {
 			},
 			expectSaveCall: false,
 		},
+		{
+			name: "Finish function on error",
+			err:  errors.New("error"),
+			cfg: &config.Config{
+				IsRestore:       false,
+				FileStoragePath: "test.json",
+			},
+			metrics: []models.Metrics{
+				{ID: "metric1", MType: "gauge", Value: &floatValue},
+				{ID: "metric2", MType: "counter", Delta: &intValue},
+			},
+			expectSaveCall: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStorage := MockStorage{}
+			mockStorage := MockStorage{err: tt.err}
 			dir, _ := os.Getwd()
 			path := filepath.Join(dir, tt.cfg.FileStoragePath)
 
@@ -125,6 +141,16 @@ func TestWriteMetrics(t *testing.T) {
 				{ID: "metric2", MType: "counter", Delta: &intValue},
 			},
 		},
+		{
+			name: "Successful if no FileStoragePath",
+			cfg: &config.Config{
+				FileStoragePath: "",
+				StoreInterval:   1,
+			},
+			storage:         &MockStorage{},
+			expectFile:      false,
+			expectedMetrics: []models.Metrics{},
+		},
 	}
 
 	for _, tt := range tests {
@@ -145,10 +171,24 @@ func TestWriteMetrics(t *testing.T) {
 				err = json.NewDecoder(file).Decode(&metrics)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedMetrics, metrics)
-			} else {
+			} else if tt.cfg.FileStoragePath != "" {
 				_, err := os.Stat(path)
 				assert.True(t, os.IsNotExist(err))
 			}
 		})
 	}
+}
+
+func TestWriteMetrics_ReadMetricsError(t *testing.T) {
+	err := logger.Initialize()
+	require.NoError(t, err)
+
+	mockStorage := MockStorage{err: errors.New("error")}
+
+	s := fileStorage{
+		cfg:     &config.Config{FileStoragePath: "mock/path"},
+		storage: &mockStorage,
+	}
+
+	s.WriteMetrics(false)
 }

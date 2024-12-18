@@ -26,7 +26,9 @@ func TestConfig_Flags(t *testing.T) {
 		"-r",
 		"-d", "some_dsn",
 		"-crypto-key", "crypto",
+		"-t", "trusted_subnet",
 		"-c", "",
+		"-grpc",
 	}
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
@@ -38,7 +40,9 @@ func TestConfig_Flags(t *testing.T) {
 	assert.Equal(t, "secret", cfg.SecretKey)
 	assert.Equal(t, "some_dsn", cfg.DatabaseDSN)
 	assert.Equal(t, true, cfg.IsRestore)
-	// assert.Equal(t, "crypto", cfg.CryptoKey)
+	assert.Equal(t, "crypto", cfg.CryptoKey)
+	assert.Equal(t, "trusted_subnet", cfg.TrustedSubnet)
+	assert.Equal(t, true, cfg.IsGRPC)
 }
 
 func TestConfig_SimpleEnv(t *testing.T) {
@@ -90,6 +94,11 @@ func TestConfig_SimpleEnv(t *testing.T) {
 	defer os.Setenv("DATABASE_DSN", oldDatabaseDSN)
 	require.NoError(t, err)
 
+	oldTrustedSubnet := os.Getenv("TRUSTED_SUBNET")
+	err = os.Setenv("TRUSTED_SUBNET", "trusted_subnet")
+	defer os.Setenv("TRUSTED_SUBNET", oldTrustedSubnet)
+	require.NoError(t, err)
+
 	cfg := ParseConfig()
 
 	assert.Equal(t, ":9090", cfg.RunAddr)
@@ -99,6 +108,7 @@ func TestConfig_SimpleEnv(t *testing.T) {
 	assert.Equal(t, "some_dsn", cfg.DatabaseDSN)
 	assert.Equal(t, true, cfg.IsRestore)
 	assert.Equal(t, "crypto", cfg.CryptoKey)
+	assert.Equal(t, "trusted_subnet", cfg.TrustedSubnet)
 }
 
 func TestConfig_PriorityEnv(t *testing.T) {
@@ -117,6 +127,7 @@ func TestConfig_PriorityEnv(t *testing.T) {
 		"-r", "true",
 		"-d", "some_dsn",
 		"-crypto-key", "crypto",
+		"-t", "trusted_subnet",
 		"-c", "",
 	}
 
@@ -157,6 +168,11 @@ func TestConfig_PriorityEnv(t *testing.T) {
 	defer os.Setenv("DATABASE_DSN", oldDatabaseDSN)
 	require.NoError(t, err)
 
+	oldTrustedSubnet := os.Getenv("TRUSTED_SUBNET")
+	err = os.Setenv("TRUSTED_SUBNET", "trusted_subnet1")
+	defer os.Setenv("TRUSTED_SUBNET", oldTrustedSubnet)
+	require.NoError(t, err)
+
 	cfg := ParseConfig()
 
 	assert.Equal(t, ":9091", cfg.RunAddr)
@@ -166,6 +182,7 @@ func TestConfig_PriorityEnv(t *testing.T) {
 	assert.Equal(t, "some_dsn1", cfg.DatabaseDSN)
 	assert.Equal(t, false, cfg.IsRestore)
 	assert.Equal(t, "crypto1", cfg.CryptoKey)
+	assert.Equal(t, "trusted_subnet1", cfg.TrustedSubnet)
 }
 
 func TestParseConfig_File(t *testing.T) {
@@ -188,7 +205,9 @@ func TestParseConfig_File(t *testing.T) {
 		"store_interval": 88,
 		"file_storage_path": "./storage",
 		"database_dsn": "some_dsn",
-		"is_restore": true
+		"is_restore": true,
+		"trusted_subnet": "trusted_subnet_number",
+		"is_grpc": true
 	}`
 	_, err = tmpFile.Write([]byte(configContent))
 	require.NoError(t, err)
@@ -205,4 +224,6 @@ func TestParseConfig_File(t *testing.T) {
 	assert.Equal(t, "some_dsn", cfg.DatabaseDSN)
 	assert.Equal(t, true, cfg.IsRestore)
 	assert.Equal(t, "crypto", cfg.CryptoKey)
+	assert.Equal(t, "trusted_subnet_number", cfg.TrustedSubnet)
+	assert.Equal(t, true, cfg.IsGRPC)
 }

@@ -1,19 +1,22 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"testing"
 
+	"github.com/dglazkoff/go-metrics/internal/logger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockKeyWriter struct {
-	WrittenData map[string][]byte
+	mock.Mock
 }
 
 func (m *MockKeyWriter) WriteKeyToFile(keyBytes []byte, filePath string) error {
-	m.WrittenData[filePath] = keyBytes
-	return nil
+	args := m.Called(keyBytes, filePath)
+	return args.Error(0)
 }
 
 func TestFileKeyWriter(t *testing.T) {
@@ -37,23 +40,53 @@ func TestFileKeyWriter(t *testing.T) {
 
 func TestMainWithWriter(t *testing.T) {
 	t.Run("success", func(tt *testing.T) {
-		mockWriter := &MockKeyWriter{WrittenData: make(map[string][]byte)}
+		mockWriter := new(MockKeyWriter)
+
+		mockWriter.On("WriteKeyToFile", mock.Anything, "keys/private.pem").Return(nil)
+		mockWriter.On("WriteKeyToFile", mock.Anything, "keys/public.pem").Return(nil)
 
 		err := mainWithWriter(mockWriter)
-		assert.NoError(tt, err)
+		assert.NoError(tt, err, "Expected no error during successful execution")
 
-		if _, ok := mockWriter.WrittenData["keys/private.pem"]; !ok {
-			tt.Error("Ожидалась запись закрытого ключа, но она не была выполнена")
-		}
-		if _, ok := mockWriter.WrittenData["keys/public.pem"]; !ok {
-			tt.Error("Ожидалась запись открытого ключа, но она не была выполнена")
-		}
+		mockWriter.AssertCalled(tt, "WriteKeyToFile", mock.Anything, "keys/private.pem")
+		mockWriter.AssertCalled(tt, "WriteKeyToFile", mock.Anything, "keys/public.pem")
 
-		if len(mockWriter.WrittenData["keys/private.pem"]) == 0 {
-			tt.Error("Записанный закрытый ключ пуст")
-		}
-		if len(mockWriter.WrittenData["keys/public.pem"]) == 0 {
-			tt.Error("Записанный открытый ключ пуст")
-		}
+		mockWriter.AssertNumberOfCalls(tt, "WriteKeyToFile", 2)
 	})
+}
+
+func TestWriteKeyToFile_FileCreationError(t *testing.T) {
+	err := logger.Initialize()
+	assert.NoError(t, err)
+
+	writer := &FileKeyWriter{}
+	keyBytes := []byte("test-key-content")
+
+	err = writer.WriteKeyToFile(keyBytes, "/invalid/path/to/file.txt")
+	assert.Error(t, err, "Expected an error when providing an invalid file path")
+}
+
+func TestMainWithWriter_ErrorOnPrivateKeyWrite(t *testing.T) {
+	err := logger.Initialize()
+	assert.NoError(t, err)
+
+	mockWriter := new(MockKeyWriter)
+
+	mockWriter.On("WriteKeyToFile", mock.Anything, "keys/private.pem").Return(nil)
+	mockWriter.On("WriteKeyToFile", mock.Anything, "keys/public.pem").Return(errors.New("mock write error"))
+
+	err = mainWithWriter(mockWriter)
+	assert.Error(t, err, "Expected error when writing the public key to the file fails")
+}
+
+func TestMainWithWriter_ErrorOnPublicKeyWrite(t *testing.T) {
+	err := logger.Initialize()
+	assert.NoError(t, err)
+
+	mockWriter := new(MockKeyWriter)
+
+	mockWriter.On("WriteKeyToFile", mock.Anything, "keys/private.pem").Return(errors.New("mock private key write error"))
+
+	err = mainWithWriter(mockWriter)
+	assert.Error(t, err, "Expected error when writing the private key to the file fails")
 }
